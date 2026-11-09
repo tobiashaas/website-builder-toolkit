@@ -51,14 +51,17 @@ Plugins update themselves; skills.sh copies editable files that you update by ha
 | --- | --- | --- |
 | Claude Code | `claude plugin marketplace add tobiashaas/website-builder-toolkit` then `claude plugin install website-builder-toolkit@website-builder-toolkit` | with each released version |
 | Codex | `codex plugin marketplace add tobiashaas/website-builder-toolkit` then `codex plugin add website-builder-toolkit@website-builder-toolkit` | at startup |
-| Any agent with Agent Skills support (Cursor, Copilot, Gemini CLI, …) | `npx skills@latest add tobiashaas/website-builder-toolkit` | manual: `npx skills update` |
+| Grok Build (xAI) | `grok plugin install https://github.com/tobiashaas/website-builder-toolkit --trust` | `grok plugin update` |
+| Any agent with Agent Skills support (Cursor, Copilot, Gemini CLI / Antigravity CLI, …) | `npx skills@latest add tobiashaas/website-builder-toolkit` | manual: `npx skills update` |
+
+Tested on 09.11.2026: Claude Code, Codex and Grok Build install all 13 skills from GitHub. Gemini CLI (replaced by Antigravity CLI in June 2026) and skills.sh are not tested yet; the flat `skills/<name>/SKILL.md` layout follows the Agent Skills standard they read.
 
 Agents without skill support: clone the repo next to your project and add one line to the project's `AGENTS.md`: `For website design and copy work, follow website-builder-toolkit/AGENTS.md.`
 
 `slop-lint` needs Node 18 or later and nothing else:
 
 ```bash
-node skills/design/site-audit/scripts/slop-lint.mjs src --brand website-builder/brand.md --adapter acss --lang de
+node skills/site-audit/scripts/slop-lint.mjs src --brand website-builder/brand.md --adapter acss --lang de
 ```
 
 ## Evidence

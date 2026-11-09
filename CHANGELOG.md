@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 (2026-11-09)
+
+- Flat skill layout `skills/<name>/SKILL.md` for broader compatibility (Gemini/Antigravity, skills.sh, Grok Build).
+- Install instructions for Grok Build; Claude Code, Codex and Grok Build tested from GitHub.
+
 ## 0.1.0 (2026-11-09)
 
 First version, published as Website Builder Toolkit.

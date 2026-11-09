@@ -12,11 +12,11 @@ It helps produce design and copy that fit one brand and don't read as generated.
 2. **Brand profile.** Read `website-builder/brand.md` unless the setup says `brand: none`. Missing: `site-brand` or ask. With no brand, use neutral tokens and mark all text as placeholders. Never invent brand values, copy or facts. If the profile names a `source_of_truth`, run the check against the source (`site-brand`, mode C) before relying on it.
 3. **Data folder.** Results go into `website-builder/` (see `site-wizard`). Create the folder and the needed subfolder if they don't exist yet.
 4. **Stack.** Load a stack skill only if the project uses that tool:
-   - Automatic.css → `skills/stack/site-acss`, docs <https://docs.automaticcss.com/>
-   - Etch → `skills/stack/site-etch`, docs <https://docs.etchwp.com/>
-   - Bricks → `skills/stack/site-bricks`, docs <https://academy.bricksbuilder.io/>
-   - Anything else, or no framework: the core skills work with plain CSS tokens (`skills/design/site-design/plain-css.md`).
-5. **Design tool first** (Figma, Paper, Pencil): `skills/design/site-handoff`.
+   - Automatic.css → `skills/site-acss`, docs <https://docs.automaticcss.com/>
+   - Etch → `skills/site-etch`, docs <https://docs.etchwp.com/>
+   - Bricks → `skills/site-bricks`, docs <https://academy.bricksbuilder.io/>
+   - Anything else, or no framework: the core skills work with plain CSS tokens (`skills/site-design/plain-css.md`).
+5. **Design tool first** (Figma, Paper, Pencil): `skills/site-handoff`.
 
 ## Hard rules
 
@@ -32,22 +32,22 @@ It helps produce design and copy that fit one brand and don't read as generated.
 ## Lint
 
 ```
-node skills/design/site-audit/scripts/slop-lint.mjs <paths> --brand website-builder/brand.md --adapter acss|etch|bricks --lang de|en
+node skills/site-audit/scripts/slop-lint.mjs <paths> --brand website-builder/brand.md --adapter acss|etch|bricks --lang de|en
 ```
 
-`--format json` for machine-readable output. Rules and options: `skills/design/site-audit/scripts/README.md`.
+`--format json` for machine-readable output. Rules and options: `skills/site-audit/scripts/README.md`.
 
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
-| `skills/start/site-wizard/` | start: scope, setup file `website-builder/setup.md`, hand-over |
-| `skills/brand/site-brand/` | brand profile interview or import, `template.md` |
-| `skills/design/` | `site-direction`, `site-audit` (with slop-lint), `site-design`, `site-polish`, `site-handoff` |
-| `skills/copy/site-copy/` | copy and tone, `de.md`, `en.md` |
-| `skills/verify/site-verify/` | evidence-based done check |
-| `skills/verify/site-accessibility/` | WCAG 2.2 AA check, with `contrast.mjs` |
-| `skills/stack/` | `site-acss`, `site-etch`, `site-bricks` |
+| `skills/site-wizard/` | start: scope, setup file `website-builder/setup.md`, hand-over |
+| `skills/site-brand/` | brand profile interview or import, `template.md` |
+| `skills/site-direction/`, `site-audit/` (with slop-lint), `site-design/`, `site-polish/`, `site-handoff/` | design: direction, anti-slop check, passes, polish, design-tool handoff |
+| `skills/site-copy/` | copy and tone, `de.md`, `en.md` |
+| `skills/site-verify/` | evidence-based done check |
+| `skills/site-accessibility/` | WCAG 2.2 AA check, with `contrast.mjs` |
+| `skills/site-acss/`, `site-etch/`, `site-bricks/` | optional stack skills |
 | `GLOSSARY.md` | shared vocabulary |
 | `SCOPE.md` | what gets into the toolkit |
 | `docs/EVIDENCE.md` | research behind the rules and its strength |
