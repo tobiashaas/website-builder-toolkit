@@ -20,6 +20,7 @@ Look before asking. Report what you found in a few lines:
 - Stack: Automatic.css loaded (stylesheet, plugin, `automatic.css` in uploads)? Etch or Bricks in use (plugins, connector config, theme)? Tailwind or plain CSS?
 - Language of existing content.
 - Design files mentioned or linked (Figma, Paper, Pencil)?
+- Existing site? Then the inventory from `site-structure` is the first evidence of what is there.
 
 ## 2. Ask, one section at a time
 
@@ -29,11 +30,12 @@ Lead each section with the recommended answer so the user can accept it with a w
 
 | Mode | What runs | Brand needed |
 | --- | --- | --- |
-| **Full website** | `site-brand` → `site-direction` → `site-design` with `site-copy` → `site-polish` → `site-verify` | yes |
+| **Full website** | `site-brand` → `site-structure` → `site-direction` → `site-design` with `site-copy` → `site-polish` → `site-verify` | yes |
 | **Design only** | `site-direction` → `site-design` → `site-polish` → `site-verify`; copy stays as it is | yes, or neutral |
 | **Copy only** | `site-copy` → lint from `site-audit` → `site-verify` (content checks) | voice and facts |
 | **Build only** (no branding, no copy) | neutral tokens, structure and components with `site-design` passes 1–3 and 5–9, marked placeholders for text, `site-verify` | no |
 | **Anti-slop check** | `site-audit`; then optionally `site-direction` → `site-design` → `site-verify` | helpful, not required |
+| **Structure or relaunch** | `site-structure` (inventory, page types, sitemap, navigation, redirects) → then per page `site-direction` → `site-verify` | helpful |
 | **Design tool first** | `site-brand` → `site-direction` → frames with `site-handoff` → build → compare → `site-verify` | yes |
 
 Where a flow runs `site-verify`, run `site-accessibility` with it before handing over.
@@ -71,7 +73,7 @@ website-builder/
 
 ```markdown
 ---
-mode: full | design | copy | build | audit | design-tool
+mode: full | structure | design | copy | build | audit | design-tool
 brand: brand.md | none
 framework: acss | tailwind | plain | none
 builder: etch | bricks | other | none

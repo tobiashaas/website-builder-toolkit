@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /private/
+
+User-agent: some-other-bot
+Disallow: /
+
+Sitemap: {{origin}}/sitemap_index.xml

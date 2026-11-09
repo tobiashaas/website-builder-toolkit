@@ -11,6 +11,8 @@ Composes with: `site-brand` (the profile it reads), `site-audit` (findings it re
 
 The direction is written before anything is styled and confirmed by a human. Research on coding agents found that a human-set direction with the agent evaluating beats an agent-invented direction, and that structure given up front cuts failures sharply (see `docs/EVIDENCE.md`). Treat that as the reason this step is not optional.
 
+If `website-builder/structure.md` exists, take the page's job, audience, type and main search term from it; do not redefine them here.
+
 ## Five lines
 
 Derive each from the brand profile and the job of this piece, never from what is trending.

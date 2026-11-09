@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{{origin}}/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/about/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/services/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/services/web/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/contact/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/noindex/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/orphan/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/old-page/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/gone/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/level1/level2/level3/level4/</loc><lastmod>2026-10-01</lastmod></url>
+  <url><loc>{{origin}}/private/area/</loc><lastmod>2026-10-01</lastmod></url>
+</urlset>

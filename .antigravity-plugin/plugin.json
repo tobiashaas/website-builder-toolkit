@@ -1,7 +1,7 @@
 {
   "name": "website-builder-toolkit",
   "displayName": "Website Builder Toolkit",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Skills for building websites that fit one brand and don't read as AI-generated: wizard, brand profile, anti-slop audit, design passes, copy, accessibility (WCAG 2.2 AA), verification. Optional Automatic.css, Etch and Bricks.",
   "logo": "assets/icon.png",
   "suggestedPrompts": [

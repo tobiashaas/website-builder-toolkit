@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 (2026-11-09)
+
+- New skill `site-structure`: inventory crawler (`inventory.mjs`), page types by search intent, pillars and clusters with leading pages, navigation and click depth, content model, relaunch and redirect plan, template for `website-builder/structure.md`.
+- Wizard: new mode "Structure or relaunch"; "Full website" now runs `site-structure` before `site-direction`.
+
 ## 0.1.1 (2026-11-09)
 
 - Flat skill layout `skills/<name>/SKILL.md` for broader compatibility (Gemini/Antigravity, skills.sh, Grok Build).

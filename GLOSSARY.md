@@ -25,6 +25,12 @@ _Avoid_: style guide (an input to the profile, not the profile), brand book
 A sign that a piece was generated or not designed: a purple gradient, an emoji icon, a hype word, a three-card grid. Listed with its fix in `slop-signs.md` (site-audit).
 _Avoid_: slop (fine in conversation, not as a finding label)
 
+**Page type**
+What a page is for, chosen by the reader's intent: offer, product, guide, glossary, case study, location, help, news, landing page. One type, one job, one main search term per page.
+
+**Pillar, cluster, leading page**
+Pillar: top topic with a real hub page. Cluster: a group of at least three pages inside a pillar, led by one leading page. Navigation, breadcrumbs and sibling links follow from these levels.
+
 **Direction**
 Five lines (offer, character, world, moment, signature) plus one concept sentence, written by `site-direction` and confirmed by a person before styling starts.
 

@@ -43,6 +43,7 @@ node skills/site-audit/scripts/slop-lint.mjs <paths> --brand website-builder/bra
 | --- | --- |
 | `skills/site-wizard/` | start: scope, setup file `website-builder/setup.md`, hand-over |
 | `skills/site-brand/` | brand profile interview or import, `template.md` |
+| `skills/site-structure/` | site structure: inventory crawler, page types, sitemap, navigation, redirects |
 | `skills/site-direction/`, `site-audit/` (with slop-lint), `site-design/`, `site-polish/`, `site-handoff/` | design: direction, anti-slop check, passes, polish, design-tool handoff |
 | `skills/site-copy/` | copy and tone, `de.md`, `en.md` |
 | `skills/site-verify/` | evidence-based done check |
