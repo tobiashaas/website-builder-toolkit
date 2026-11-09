@@ -1,0 +1,29 @@
+{
+  "name": "website-builder-toolkit",
+  "displayName": "Website Builder Toolkit",
+  "version": "0.1.1",
+  "description": "Skills for building websites that fit one brand and don't read as AI-generated: wizard, brand profile, anti-slop audit, design passes, copy, accessibility (WCAG 2.2 AA), verification. Optional Automatic.css, Etch and Bricks.",
+  "logo": "assets/icon.png",
+  "suggestedPrompts": [
+    "Start the site wizard for this project",
+    "Run an anti-slop check on the homepage at 390 and 1440 px",
+    "Create a brand profile from our existing style guide"
+  ],
+  "author": {
+    "name": "Tobias Haas",
+    "url": "https://github.com/tobiashaas"
+  },
+  "homepage": "https://github.com/tobiashaas/website-builder-toolkit",
+  "repository": "https://github.com/tobiashaas/website-builder-toolkit",
+  "license": "CC-BY-4.0 AND MIT",
+  "keywords": [
+    "design",
+    "copy",
+    "brand",
+    "unslop",
+    "automatic-css",
+    "etch",
+    "bricks",
+    "skills"
+  ]
+}

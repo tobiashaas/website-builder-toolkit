@@ -34,5 +34,5 @@
   ],
   "repository": "https://github.com/tobiashaas/website-builder-toolkit",
   "homepage": "https://github.com/tobiashaas/website-builder-toolkit",
-  "icon": "./.claude-plugin/icon.png"
+  "icon": "./assets/icon.png"
 }

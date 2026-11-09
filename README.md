@@ -52,9 +52,10 @@ Plugins update themselves; skills.sh copies editable files that you update by ha
 | Claude Code | `claude plugin marketplace add tobiashaas/website-builder-toolkit` then `claude plugin install website-builder-toolkit@website-builder-toolkit` | with each released version |
 | Codex | `codex plugin marketplace add tobiashaas/website-builder-toolkit` then `codex plugin add website-builder-toolkit@website-builder-toolkit` | at startup |
 | Grok Build (xAI) | `grok plugin install https://github.com/tobiashaas/website-builder-toolkit --trust` | `grok plugin update` |
-| Any agent with Agent Skills support (Cursor, Copilot, Gemini CLI / Antigravity CLI, …) | `npx skills@latest add tobiashaas/website-builder-toolkit` | manual: `npx skills update` |
+| Antigravity CLI (Google, successor of Gemini CLI) | `git clone https://github.com/tobiashaas/website-builder-toolkit` then `agy plugin install ./website-builder-toolkit` | `git pull`, then install again |
+| Any other agent with Agent Skills support (Cursor, Copilot, …) | `npx skills@latest add tobiashaas/website-builder-toolkit` | manual: `npx skills update` |
 
-Tested on 09.11.2026: Claude Code, Codex and Grok Build install all 13 skills from GitHub. Gemini CLI (replaced by Antigravity CLI in June 2026) and skills.sh are not tested yet; the flat `skills/<name>/SKILL.md` layout follows the Agent Skills standard they read.
+Tested on 09.11.2026: Claude Code, Codex, Grok Build and Antigravity CLI install all 13 skills. skills.sh is not tested yet; the flat `skills/<name>/SKILL.md` layout follows the Agent Skills standard it reads.
 
 Agents without skill support: clone the repo next to your project and add one line to the project's `AGENTS.md`: `For website design and copy work, follow website-builder-toolkit/AGENTS.md.`
 

@@ -3,7 +3,8 @@
 ## 0.1.1 (2026-11-09)
 
 - Flat skill layout `skills/<name>/SKILL.md` for broader compatibility (Gemini/Antigravity, skills.sh, Grok Build).
-- Install instructions for Grok Build; Claude Code, Codex and Grok Build tested from GitHub.
+- Install instructions for Grok Build and Antigravity CLI (native manifest `.antigravity-plugin/plugin.json`); Claude Code, Codex, Grok Build and Antigravity CLI tested.
+- Plugin icon moved to `assets/icon.png`.
 
 ## 0.1.0 (2026-11-09)
 
