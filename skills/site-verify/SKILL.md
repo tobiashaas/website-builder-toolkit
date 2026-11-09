@@ -42,6 +42,9 @@ node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]
 - [ ] Touch targets ≥ 44 × 44 px on phones.
 - [ ] Fonts load from one source; each weight used is actually loaded.
 
+**SEO** (pages that should rank)
+- [ ] `site-seo` check passed: `node ../site-seo/scripts/seo-check.mjs <url> --brand website-builder/brand.md`.
+
 **Content**
 - [ ] Every number, name and claim traced to the profile's facts table.
 - [ ] No placeholder text, no typos, consistent capitalization.

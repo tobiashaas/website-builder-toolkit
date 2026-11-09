@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 (2026-11-09)
+
+- New skill `site-seo`: search data before copy, page basics, structured data that must match visible content, local SEO with consistent name/address/phone, indexing, visibility in AI search; ships `seo-check.mjs`.
+- Wizard: new mode "SEO"; "Full website" runs `site-seo` before `site-verify`.
+
 ## 0.2.0 (2026-11-09)
 
 - New skill `site-structure`: inventory crawler (`inventory.mjs`), page types by search intent, pillars and clusters with leading pages, navigation and click depth, content model, relaunch and redirect plan, template for `website-builder/structure.md`.

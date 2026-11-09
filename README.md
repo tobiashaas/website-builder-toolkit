@@ -18,6 +18,7 @@ The wizard looks at your project, asks one question at a time with a recommendat
 | --- | --- |
 | Full website | brand, structure, direction, design, copy, polish, checks |
 | Structure or relaunch | inventory, page types, sitemap, navigation, redirects |
+| SEO | search data, titles, structured data, local SEO, indexing |
 | Design only | design without touching the copy |
 | Copy only | text in the brand's voice |
 | Build only | structure and components without branding or copy, with marked placeholders |
@@ -31,6 +32,7 @@ The wizard looks at your project, asks one question at a time with a recommendat
 | `site-wizard` | Start here: scope, setup, hand-over |
 | `site-brand` | Brand profile by interview (rounds with a recommendation) or from existing guidelines |
 | `site-structure` | Inventory crawl, page types by intent, pillars and clusters, navigation, content model, redirects for relaunches |
+| `site-seo` | Search data before copy, titles and descriptions, structured data that matches the page, local SEO, indexing, AI search; ships `seo-check.mjs` |
 | `site-direction` | Direction, concept and skeleton, confirmed before styling; variants for important pages |
 | `site-audit` | Anti-slop check on the rendered result; ships `slop-lint` (48 rules) |
 | `site-design` | Subtract, then spacing, color, icons, copy, type, layout, details, one moment, motion, each checked |
