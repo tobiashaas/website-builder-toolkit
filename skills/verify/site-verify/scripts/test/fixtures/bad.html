@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Bad fixture</title>
+<link rel="icon" href="data:,">
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fff; }
+  main { padding: 16px; }
+  .wide { width: 600px; height: 40px; background: #eee; }
+  .clip { overflow-x: hidden; }
+  .clip .slide { width: 900px; }
+  .low { color: #aaaaaa; }
+  .low-mixed { color: #bbbbbb; }
+  .mid { color: #767676; }
+  .grad { background: linear-gradient(90deg, #7c3aed, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .spin { display: inline-block; width: 40px; height: 40px; background: #333; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .photo { padding: 24px; background: #333 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Crect width='10' height='10' fill='%23888'/%3E%3C/svg%3E"); color: #fff; }
+  .tiny { display: inline-block; width: 12px; height: 12px; background: #222; }
+  button { width: 44px; height: 44px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fixture with problems</h1>
+  <div class="wide">wide box</div>
+  <div class="clip"><div class="slide">clipped slider</div></div>
+  <p class="low">Low contrast paragraph text.</p>
+  <p class="low-mixed">Light grey text with <a href="#y">a link</a> inside.</p>
+  <p class="mid">Passes AA at 4.54:1, fails AAA.</p>
+  <h2 class="grad">Gradient heading</h2>
+  <span class="spin"></span>
+  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'/%3E" width="20" height="20">
+  <button type="button" class="icon-only"><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6"/></svg></button>
+  <a class="tiny" href="#top" aria-label="Back to top"></a>
+  <p>An inline <a href="#x">link</a> in a sentence is exempt from target size.</p>
+  <div class="photo"><p>Text over a background image.</p></div>
+  <img src="/missing.png" alt="Missing image">
+</main>
+<script>throw new Error('fixture boom');</script>
+</body>
+</html>

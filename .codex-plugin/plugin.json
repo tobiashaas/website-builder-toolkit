@@ -1,0 +1,23 @@
+{
+  "name": "website-builder-toolkit",
+  "version": "0.1.0",
+  "description": "Brand-true design and copy without the AI look: brand profile, direction, audit with slop-lint, passes, copy, polish, design-tool handoff and verification. Optional stack skills for Automatic.css, Etch and Bricks.",
+  "author": {
+    "name": "Tobias Haas",
+    "url": "https://github.com/tobiashaas"
+  },
+  "homepage": "https://github.com/tobiashaas/website-builder-toolkit",
+  "repository": "https://github.com/tobiashaas/website-builder-toolkit",
+  "license": "CC-BY-4.0 AND MIT",
+  "keywords": [
+    "design",
+    "copy",
+    "brand",
+    "unslop",
+    "automatic-css",
+    "etch",
+    "bricks",
+    "skills"
+  ],
+  "skills": "./skills/"
+}

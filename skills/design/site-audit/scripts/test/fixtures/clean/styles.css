@@ -1,0 +1,14 @@
+:root { --radius: 0.5rem; }
+.panel {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  border-radius: var(--radius);
+}
+.panel__label { text-transform: uppercase; letter-spacing: 0.02em; font-size: 0.875rem; }
+.display { font-size: 4rem; letter-spacing: -0.03em; }
+.link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.skeleton { animation: pulse 1.5s ease-in-out infinite; }
+@media (width >= 48rem) {
+  .grid { display: grid; grid-template-columns: 1fr 2fr; }
+}

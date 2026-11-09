@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion fixture</title>
+<link rel="icon" href="data:,">
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #1a1a1a; background: #fff; }
+  .pulse { width: 40px; height: 40px; background: #1a1a1a; }
+  .always { width: 40px; height: 40px; background: #1a1a1a; animation: drift 3s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .5; } }
+  @keyframes drift { 50% { transform: translateX(20px); } }
+  @media (prefers-reduced-motion: no-preference) { .pulse { animation: pulse 2s infinite; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Motion fixture</h1>
+  <div class="pulse"></div>
+  <div class="always"></div>
+</main>
+</body>
+</html>

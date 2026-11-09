@@ -1,0 +1,3 @@
+interface:
+  display_name: "site-accessibility"
+  short_description: "Check a page against WCAG 2.2 AA: brand contrast matrix, axe scan, manual checks"

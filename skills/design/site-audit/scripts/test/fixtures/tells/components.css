@@ -1,0 +1,13 @@
+.panel {
+  background-image: linear-gradient(135deg, rgb(139 92 246), #3b82f6);
+  box-shadow: 0 10px 30px hsla(270, 90%, 60%, 0.5);
+  transition: 0.2s ease-in-out;
+}
+.panel p { font-size: 14px; letter-spacing: -0.02em; }
+.drawer { transition: width 300ms ease; }
+@keyframes grow { from { height: 0; } to { height: 200px; } }
+.loader { animation: spin 1s linear infinite; }
+.a { margin: 3px !important; padding: 5px !important; top: 7px !important; left: 9px !important; }
+.b { width: 11px; height: 13px; gap: 15px; inset: 17px; }
+.c { margin: 19px; padding: 21px; font-size: 23px; line-height: 25px; }
+.d { border-width: 27px; border-radius: 29px; }

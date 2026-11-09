@@ -1,0 +1,7 @@
+/* slop-lint-disable-next-line css/transition-all */
+.a { transition: all 0.2s; }
+.b { font-weight: 900; } /* slop-lint-disable-line design/heavy-weight */
+/* slop-lint-disable design/* */
+.c { box-shadow: 0 0 40px rgba(255, 0, 128, .8); }
+/* slop-lint-enable */
+.d { transition: all 0.2s; }

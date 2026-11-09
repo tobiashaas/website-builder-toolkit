@@ -1,0 +1,3 @@
+{
+  "ignore": ["skills/design/site-audit/scripts/test/**", "skills/verify/site-verify/scripts/test/fixtures/**"]
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clean fixture</title>
+<link rel="icon" href="data:,">
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #1a1a1a; background: #fff; }
+  main { padding: 16px; max-width: 60rem; }
+  .dark { background: #1a1a1a; color: #fff; padding: 24px; }
+  .dark a { color: #fff; }
+  img { max-width: 100%; height: auto; }
+  button, .btn { display: inline-block; min-width: 44px; min-height: 44px; }
+  .scroller { overflow-x: auto; }
+  .scroller div { width: 1200px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Clean fixture</h1>
+  <p>Body text with an inline <a href="#a">link</a> in a sentence.</p>
+  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'/%3E" alt="Empty frame" width="200" height="100">
+  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'/%3E" alt="" width="20" height="20">
+  <button type="button" aria-label="Close"><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6"/></svg></button>
+  <a class="btn" href="#contact">Contact</a>
+  <div class="scroller"><div>Wide table in its own scroll container.</div></div>
+  <section class="dark"><p>Light text on a dark surface. <a href="#b">Link</a>.</p></section>
+</main>
+</body>
+</html>

@@ -1,0 +1,3 @@
+interface:
+  display_name: "site-etch"
+  short_description: "Apply the toolkit rules on sites built with Etch for WordPress"

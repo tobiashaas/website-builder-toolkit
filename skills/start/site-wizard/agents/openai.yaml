@@ -1,0 +1,3 @@
+interface:
+  display_name: "site-wizard"
+  short_description: "Start here: choose what to build and set up the project"

@@ -1,0 +1,5 @@
+{
+  "rules": { "design/heavy-weight": "off", "css/transition-all": "error" },
+  "ignore": ["skip/**"],
+  "thresholds": { "pxDistinct": 2 }
+}

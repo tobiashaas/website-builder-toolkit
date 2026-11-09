@@ -1,0 +1,4 @@
+---
+mode: build
+brand: none
+---
