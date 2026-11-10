@@ -69,6 +69,10 @@ Agents without skill support: clone the repo next to your project and add one li
 node skills/site-audit/scripts/slop-lint.mjs src --brand website-builder/brand.md --adapter acss --lang de
 ```
 
+## Roadmap
+
+Open work and planned checks: `TODO.md`.
+
 ## Evidence
 
 Rules that rest on research are listed in `docs/EVIDENCE.md` with their strength (peer-reviewed, preprint, abstract only, unverified). The rest is marked as craft judgment. Changes follow `SCOPE.md`.
