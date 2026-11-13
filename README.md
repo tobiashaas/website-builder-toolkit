@@ -42,6 +42,7 @@ The wizard looks at your project, asks one question at a time with a recommendat
 | `site-verify` | Done means evidence: widths, lint, contrast, keyboard, reduced motion, facts traced; ships `render-check` (Chrome-rendered overflow, contrast, motion, names, targets per width) |
 | `site-accessibility` | WCAG 2.2 AA check: brand contrast matrix with `contrast.mjs`, axe-core scan, keyboard, screen reader, zoom |
 | `site-acss` | Automatic.css: real tokens and utilities, no invented names ([docs](https://docs.automaticcss.com/)) |
+| `site-styleguide` | Automatic.css styleguide: values bound to real tokens, computed contrast per surface, values without a slot, and how to bring them into the dashboard |
 | `site-etch` | Etch: where styles belong, safe write paths, frontend checks ([docs](https://docs.etchwp.com/)) |
 | `site-bricks` | Bricks: global classes, variables, theme styles, with or without ACSS ([docs](https://academy.bricksbuilder.io/)) |
 

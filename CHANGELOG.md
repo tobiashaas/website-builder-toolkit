@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 (2026-11-13)
+
+- New skill `site-styleguide`: styleguide for Automatic.css projects as a worksheet for the dashboard. Slop check before decisions are frozen, every value bound to a real token, contrast computed per surface, values without a slot listed, design file and dashboard kept in step.
+- `acss-dashboard.md` in that skill: change dashboard values without clicking (Automatic.css 4.0.3 moved import and export out of WP admin) and change a font family, both run on a live site.
+
 ## 0.3.0 (2026-11-09)
 
 - New skill `site-seo`: search data before copy, page basics, structured data that must match visible content, local SEO with consistent name/address/phone, indexing, visibility in AI search; ships `seo-check.mjs`.
