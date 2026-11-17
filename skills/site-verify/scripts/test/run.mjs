@@ -178,6 +178,28 @@ test('css-edge: nested rules are judged with their resolved selector', () => {
   assert(!edgeCss.some((f) => /card__text/.test(f.selector) && /^margin:/.test(f.detail)), 'nested margin flagged');
 });
 
+// Style position: measured on the render against a direction file.
+const dirFile = (n) => path.join(fixtures, n);
+const sp = (r) => find(r, (f) => f.check === 'style-position');
+const styleOk = await run([`${base}/style.html`, '--widths', '390,1280', '--direction', dirFile('direction-match.md'), ...common]);
+test('style: a page inside its confirmed position has no style findings', () => assert(sp(styleOk).length === 0 && styleOk.json.style.shape === 'round', JSON.stringify(sp(styleOk))));
+const styleOff = await run([`${base}/style.html`, '--widths', '390,1280', '--direction', dirFile('direction-off.md'), ...common]);
+test('style: shape above the stage is reported for control and card', () => {
+  assert(sp(styleOff).some((f) => /button\.button/.test(f.selector) && /corner radius 14 px with shape "sharp"/.test(f.detail)), JSON.stringify(sp(styleOff)));
+  assert(sp(styleOff).some((f) => /div\.card/.test(f.selector) && /corner radius 14 px/.test(f.detail)), 'card missing');
+});
+test('style: type contrast and density are judged at the reference width only', () => {
+  const type = sp(styleOff).filter((f) => /largest font size 72 px is 4\.5 times body size/.test(f.detail));
+  const dens = sp(styleOff).filter((f) => /median section padding 120 px over 3 section\(s\) with density "dense"/.test(f.detail));
+  assert(type.length === 1 && type[0].width === 1280 && dens.length === 1 && dens[0].width === 1280, JSON.stringify(sp(styleOff).map((f) => [f.width, f.detail.slice(0, 60)])));
+});
+test('style: color budget counts hue families', () => assert(sp(styleOff).some((f) => f.selector === 'colors' && /^2 hue families besides neutrals with color budget "one-accent"/.test(f.detail)), JSON.stringify(sp(styleOff).map((f) => f.detail.slice(0, 70)))));
+test('style: an image in the first viewport breaks type-only', () => assert(sp(styleOff).some((f) => /img\.hero-image/.test(f.selector) && /with imagery "type-only"/.test(f.detail)), 'imagery missing'));
+test('style: findings are warnings, exit 0', () => assert(styleOff.status === 0 && sp(styleOff).every((f) => f.severity === 'warn'), `status ${styleOff.status}`));
+const styleBad = await run(['http://localhost/', '--direction', dirFile('direction-invalid.md')]);
+test('style: unknown stage is a usage error', () => assert(styleBad.status === 2 && /style\.shape: "pointy"/.test(styleBad.stderr), `status ${styleBad.status} ${styleBad.stderr}`));
+test('style: off without --direction', () => assert(sp(prioOk).length === 0, 'ran without the flag'));
+
 // A page that opens an alert must not hang; an error status of the document is an error.
 const dialog = await run([`${base}/dialog.html`, '--widths', '390', ...common]);
 test('dialog: alert is dismissed and reported, the run finishes', () => has(dialog, (f) => f.check === 'console' && f.selector === 'dialog' && /alert dialog dismissed/.test(f.detail), 'dialog note missing'));

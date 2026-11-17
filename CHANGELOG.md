@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `render-check --direction <file>`: new check `style-position`. It measures all five axes of the style position on the render from computed values (corner radius, largest font size against body size, section padding, hue families, images in the first viewport), so it also works where a framework sets them through variables.
+
 - Order of SEO fixed: `site-seo` step 1 (search data) now runs with `site-structure`, before direction and copy; steps 2 to 6 and the check stay before `site-verify`. `site-wizard`, `site-seo`, `site-structure` and `site-copy` say so.
 
 - `render-check --css-effect`, after a test on live sites and a review: compares every matched element (up to 300, then an even spread) instead of the first twelve, keeps several `<style>` blocks apart, judges nested rules, names the twin of a duplicated declaration, leaves rules untouched that the browser cannot restore exactly, runs after the screenshot, and recognises Automatic.css and reset files by name.

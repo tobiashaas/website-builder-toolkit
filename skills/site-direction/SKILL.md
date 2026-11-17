@@ -46,7 +46,8 @@ Motion is not an axis here. It comes from the brand profile (`motion`).
 - Do not set a stage the brand cannot fill. `photo` needs real photos of the brand's work; without them choose `type-only` or `illustration`.
 - Do not invent a position when the brand profile sets one under `style`. Take it, and deviate on a piece only with a reason written into the direction.
 - Do not change the position during styling. A different stage is a new direction and needs a new confirmation.
-- **Check:** `slop-lint --direction website-builder/direction/<page>.md` reports corner radii and font sizes above the confirmed stage (`direction/shape`, `direction/type-contrast`). It reads literal values only: where the radius or the type scale comes from a framework variable, read the computed value on the render. Density, color budget and imagery are measured on the render in `site-verify`.
+- **Check on the render:** `render-check <url> --direction website-builder/direction/<page>.md` (in `site-verify`) measures all five axes from computed values and reports what lies outside the confirmed stage (`style-position`). This is the check that counts, also where radius and type scale come from framework variables.
+- **Check while writing CSS:** `slop-lint --direction website-builder/direction/<page>.md` reports literal corner radii and font sizes above the stage (`direction/shape`, `direction/type-contrast`).
 
 For variants, begin from [starting-points.md](starting-points.md).
 

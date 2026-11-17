@@ -9,7 +9,7 @@
 //
 //   node scripts/render-check.mjs <url> [--widths 360,390,768,1024,1280,1440,1920]
 //        [--format text|json] [--out <dir>|--no-out] [--reduced-motion] [--level aa|aaa]
-//        [--wait 3000] [--chrome <path>] [--css-effect] [--css-only <pattern>]
+//        [--wait 3000] [--chrome <path>] [--css-effect] [--css-only <pattern>] [--direction <file>]
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -31,6 +31,38 @@ const CSS_EFFECT_SAMPLE = 300; // matched elements compared per rule; more are s
 // Left out of --css-effect unless --css-only names them.
 const CSS_VENDOR = String.raw`/wp-includes/|/wp-admin/|/plugins/|/automatic-css/|/themes/bricks/|/node_modules/|/[^/?]*(?:automatic|acss|reset|normalize)[^/?]*\.css|<style#(?:global-styles|wp-block-library|classic-theme-styles|core-block-supports|wp-emoji|automatic)`;
 
+// Style position (site-direction): one stage per axis, with the range each stage allows on the render.
+// The same axes and stages as in slop-lint; that script reads literal CSS, this one measures computed values.
+const STYLE_AXES = {
+  density: { airy: [96, Infinity], regular: [56, 95.99], dense: [0, 55.99] }, // median vertical section padding in px
+  type_contrast: { flat: [0, 2], medium: [2.01, 3.5], strong: [3.51, Infinity] }, // largest font size divided by body size
+  shape: { sharp: [0, 2], soft: [3, 10], round: [10.01, Infinity] }, // corner radius in px
+  color_budget: { 'one-accent': 1, 'two-families': 2, colorful: Infinity }, // hue families besides neutrals
+  imagery: { photo: true, illustration: true, 'type-only': false }, // is there an image in the first viewport
+};
+const STYLE_LIST = 12; // findings listed per axis before the rest is summed up
+
+// Reads the style: block from the front matter of a direction file or brand profile. Returns {} when there is none.
+function readStyle(file) {
+  const src = fs.readFileSync(file, 'utf8');
+  const fm = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(src);
+  const style = {};
+  if (!fm) return style;
+  let inside = false;
+  for (const raw of fm[1].split(/\r?\n/)) {
+    if (/^style\s*:\s*(#.*)?$/.test(raw)) { inside = true; continue; }
+    if (!inside) continue;
+    if (/^\S/.test(raw)) break;
+    const m = /^\s+([\w-]+)\s*:\s*["']?([\w-]*)["']?\s*(?:#.*)?$/.exec(raw);
+    if (!m || !m[2]) continue;
+    const axis = m[1].replace('-', '_'), stage = m[2].toLowerCase();
+    if (!STYLE_AXES[axis]) continue;
+    if (!(stage in STYLE_AXES[axis])) throw new Error(`style.${axis}: "${m[2]}" is not one of ${Object.keys(STYLE_AXES[axis]).join(', ')}`);
+    style[axis] = stage;
+  }
+  return style;
+}
+
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
@@ -38,13 +70,13 @@ function usage(msg) {
   if (msg) process.stderr.write(`render-check: ${msg}\n`);
   process.stderr.write(`usage: node render-check.mjs <url> [--widths 360,390,768,1024,1280,1440,1920]
        [--format text|json] [--out <dir>|--no-out] [--reduced-motion] [--level aa|aaa]
-       [--wait <ms>] [--chrome <path>] [--css-effect] [--css-only <pattern>]
+       [--wait <ms>] [--chrome <path>] [--css-effect] [--css-only <pattern>] [--direction <file>]
 `);
   process.exit(2);
 }
 
 function parseArgs(argv) {
-  const a = { widths: DEFAULT_WIDTHS, format: 'text', out: undefined, reducedMotion: false, level: 'aa', wait: 3000, chrome: null, url: null, cssEffect: null };
+  const a = { widths: DEFAULT_WIDTHS, format: 'text', out: undefined, reducedMotion: false, level: 'aa', wait: 3000, chrome: null, url: null, cssEffect: null, direction: null };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined) usage(`${t} needs a value`); return v; };
@@ -58,6 +90,7 @@ function parseArgs(argv) {
     else if (t === '--level') { a.level = val().toLowerCase(); if (!['aa', 'aaa'].includes(a.level)) usage('--level is aa or aaa'); }
     else if (t === '--wait') { a.wait = Number(val()); if (!Number.isFinite(a.wait) || a.wait < 0) usage('--wait takes milliseconds'); }
     else if (t === '--chrome') a.chrome = val();
+    else if (t === '--direction') a.direction = val();
     else if (t === '--css-effect') a.cssEffect = a.cssEffect || [];
     else if (t === '--css-only') a.cssEffect = val().split(',').map((x) => x.trim()).filter(Boolean);
     else if (t === '-h' || t === '--help') usage();
@@ -234,7 +267,7 @@ function pageProbe(opts) {
   };
   const exposed = (el) => !el.closest('[aria-hidden="true"], [inert]');
   const sample = (t) => t.replace(/\s+/g, ' ').trim().slice(0, 50);
-  const out = { vw: docEl.clientWidth, sw: docEl.scrollWidth, title: document.title, overflow: [], gradient: [], animations: [], images: [], names: [], targets: [], text: [], viewport: null, hero: null, highPriority: 0 };
+  const out = { vw: docEl.clientWidth, sw: docEl.scrollWidth, title: document.title, overflow: [], gradient: [], animations: [], images: [], names: [], targets: [], text: [], viewport: null, hero: null, highPriority: 0, style: null };
 
   // 1. Reflow: outermost elements past the right edge; skip fixed subtrees and descendants of x-clipping boxes.
   if (out.sw > out.vw) {
@@ -333,6 +366,77 @@ function pageProbe(opts) {
       if (block && (block.innerText || '').trim().length > own + 1) continue;
     }
     out.targets.push({ selector: sel(el), w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 });
+  }
+
+  // 7. Style position (with --direction): what the page really renders on each axis.
+  if (opts.style) {
+    const num = (v) => parseFloat(v) || 0;
+    const st = { body: num(getComputedStyle(document.body).fontSize) || 16, top: null, sections: [], controls: [], boxes: [], colors: [], images: [] };
+    const hsl = (c) => {
+      const r = c.r / 255, g = c.g / 255, b = c.b / 255, max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+      if (max === min) return { h: 0, s: 0, l };
+      const d = max - min, s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      const h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return { h: h * 60, s, l };
+    };
+    const seenColor = new Set();
+    const addColor = (str, kind, el) => {
+      const c = rgba(str);
+      if (c.a < 0.5) return;
+      const v = hsl(c);
+      if (v.s < 0.25 || v.l < 0.12 || v.l > 0.9) return; // neutrals, near black, light tints
+      const key = `${kind}|${c.r},${c.g},${c.b}`;
+      if (seenColor.has(key)) return;
+      seenColor.add(key);
+      st.colors.push({ h: Math.round(v.h), kind, selector: sel(el), color: '#' + [c.r, c.g, c.b].map((x) => x.toString(16).padStart(2, '0')).join('') });
+    };
+    const CONTROL = 'button, [role="button"], input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), select, textarea, a[class*="btn"], a[class*="button"]';
+    const share = (r) => {
+      const left = r.left + window.scrollX, top = r.top + window.scrollY;
+      const w = Math.min(left + r.width, innerWidth) - Math.max(left, 0), h = Math.min(top + r.height, innerHeight) - Math.max(top, 0);
+      return w > 0 && h > 0 ? (w * h) / (innerWidth * innerHeight) : 0;
+    };
+    const seenBox = new Set();
+    let count = 0;
+    for (const el of document.body.querySelectorAll('*')) {
+      if (++count > 8000) break;
+      const tag = el.tagName.toLowerCase();
+      if (el.closest('svg') && tag !== 'svg') continue;
+      if (!visible(el)) continue;
+      const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+      if ([...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) {
+        const fs = num(cs.fontSize);
+        if (!st.top || fs > st.top.px) st.top = { px: fs, selector: sel(el), text: sample(el.textContent) };
+        addColor(cs.color, 'text', el);
+      }
+      const bg = rgba(cs.backgroundColor);
+      const edged = num(cs.borderTopWidth) > 0 && rgba(cs.borderTopColor).a > 0;
+      const control = el.matches(CONTROL);
+      if ((bg.a > 0 || edged || cs.boxShadow !== 'none' || control) && r.width >= 24 && r.height >= 16) {
+        const v = cs.borderTopLeftRadius.split(' ')[0];
+        const half = Math.min(r.width, r.height) / 2;
+        const radius = Math.min(v.endsWith('%') ? (Math.min(r.width, r.height) * parseFloat(v)) / 100 : num(v), half);
+        const square = Math.abs(r.width - r.height) <= Math.max(r.width, r.height) * 0.1;
+        // Fully round and square is an avatar, a dot or an icon button: not part of the shape.
+        if (!(radius >= half - 0.5 && square) && (control || radius > 0)) {
+          const key = `${sel(el)}|${Math.round(radius)}`;
+          if (!seenBox.has(key)) { seenBox.add(key); (control ? st.controls : st.boxes).push({ selector: sel(el), radius: Math.round(radius * 10) / 10, tag, boxed: bg.a > 0 || edged || cs.boxShadow !== 'none' }); }
+        }
+      }
+      if (bg.a >= 0.5 && r.width * r.height >= 2000) addColor(cs.backgroundColor, 'background', el);
+      const isImage = /^(img|video|canvas|svg|picture)$/.test(tag) || /url\(/.test(cs.backgroundImage || '');
+      if (isImage && tag !== 'picture') { const sh = share(r); if (sh >= 0.05) st.images.push({ selector: sel(el), share: Math.round(sh * 100) }); }
+    }
+    // Sections: the outermost page bands; their own vertical padding, or that of their first child when they have none.
+    const bands = [...document.querySelectorAll('main section, main > *, body > section')].filter((el) => visible(el) && el.getBoundingClientRect().height >= 200 && el.getBoundingClientRect().width >= innerWidth * 0.8);
+    for (const el of bands) {
+      if (bands.some((o) => o !== el && o.contains(el))) continue;
+      const pad = (e) => { const c = getComputedStyle(e); return (num(c.paddingTop) + num(c.paddingBottom)) / 2; };
+      const own = pad(el);
+      const value = own > 0 ? own : el.firstElementChild ? pad(el.firstElementChild) : 0;
+      if (value > 0) st.sections.push({ selector: sel(el), pad: Math.round(value) });
+    }
+    out.style = st;
   }
 
   // 6. Viewport meta.
@@ -603,7 +707,7 @@ async function checkWidth(cdp, url, width, args, outDir) {
     // Scroll through once so lazy content loads, then back to the top.
     await s('Runtime.evaluate', { awaitPromise: true, expression: `(async () => { const h = innerHeight; for (let y = 0, i = 0; y < document.documentElement.scrollHeight && i < 40; y += h, i++) { scrollTo(0, y); await new Promise(r => setTimeout(r, 80)); } scrollTo(0, 0); await new Promise(r => setTimeout(r, 400)); })()` });
 
-    const ev = await s('Runtime.evaluate', { expression: `(${pageProbe})(${JSON.stringify({ cap: CONTRAST_CAP })})`, returnByValue: true });
+    const ev = await s('Runtime.evaluate', { expression: `(${pageProbe})(${JSON.stringify({ cap: CONTRAST_CAP, style: !!args.style })})`, returnByValue: true });
     if (ev.exceptionDetails) throw new Error(`page probe failed: ${ev.exceptionDetails.exception?.description || ev.exceptionDetails.text}`);
     const p = ev.result.value;
 
@@ -711,7 +815,10 @@ async function checkWidth(cdp, url, width, args, outDir) {
       if (max !== null && max < 2) add('viewport-meta', 'error', 'meta[name=viewport]', `"${p.viewport}" limits zoom (maximum-scale=${kv['maximum-scale']}); remove maximum-scale`);
     }
 
-    // 7. Console and requests
+    // 7. Style position (with --direction)
+    if (args.style && p.style) for (const f of styleFindings(p.style, args.style, width === args.styleWidth)) add('style-position', f.severity, f.selector, f.detail);
+
+    // 7b. Console and requests
     for (const c of console_) add('console', 'warn', c.kind, `${String(c.text).split('\n')[0].slice(0, 240)}${c.where ? ` (${c.where.slice(0, 160)})` : ''}`);
 
     // 8. Screenshot
@@ -733,6 +840,60 @@ async function checkWidth(cdp, url, width, args, outDir) {
     cdp.off(onEvent);
     await cdp.send('Target.closeTarget', { targetId }).catch(() => {});
   }
+}
+
+// ---------------------------------------------------------------------------
+// Style position: compares what the probe measured with the confirmed stage per axis.
+// Density and type contrast depend on the viewport, so they are judged at one reference width only.
+// ---------------------------------------------------------------------------
+function styleFindings(m, style, isRef) {
+  const out = [];
+  const warn = (selector, detail) => out.push({ severity: 'warn', selector, detail });
+  // Stage bounds are stored with a small offset (2.01, 55.99) so neighbours do not overlap; print the plain number.
+  const low = (v) => Math.floor(v * 10) / 10, high = (v) => (Math.round(v * 100) % 100 === 99 ? Math.floor(v) : v);
+  const range = ([lo, hi]) => (hi === Infinity ? `above ${low(lo)}` : lo === 0 ? `up to ${high(hi)}` : `${low(lo)} to ${high(hi)}`);
+  const listed = (items, each) => { items.slice(0, STYLE_LIST).forEach(each); if (items.length > STYLE_LIST) warn('…', `${items.length - STYLE_LIST} more`); };
+
+  if (style.shape) {
+    const [lo, hi] = STYLE_AXES.shape[style.shape];
+    const high = [...m.controls, ...m.boxes].filter((b) => b.radius > hi);
+    listed(high, (b) => warn(b.selector, `corner radius ${b.radius} px with shape "${style.shape}" (${range([lo, hi])} px)`));
+    // Too small a radius is judged only on controls that show a box (fill, border or shadow): images and page
+    // bands are square in every shape, and a text-only trigger has no corners to see.
+    const small = m.controls.filter((b) => b.boxed && b.radius < Math.floor(lo));
+    listed(small, (b) => warn(b.selector, `corner radius ${b.radius} px on <${b.tag}> with shape "${style.shape}" (${range([lo, hi])} px)`));
+  }
+  if (style.color_budget) {
+    const max = STYLE_AXES.color_budget[style.color_budget];
+    // Hue families: colors whose hues lie within 25 degrees of each other count as one.
+    const sorted = [...m.colors].sort((a, b) => a.h - b.h);
+    const families = [];
+    for (const c of sorted) { const last = families[families.length - 1]; if (last && c.h - last[last.length - 1].h <= 25) last.push(c); else families.push([c]); }
+    if (families.length > 1 && families[0][0].h + 360 - families[families.length - 1][families[families.length - 1].length - 1].h <= 25) families[0].push(...families.pop());
+    if (families.length > max) warn('colors', `${families.length} hue families besides neutrals with color budget "${style.color_budget}" (${max}): ${families.map((f) => `${f[0].color} (${f[0].kind} of ${f[0].selector})`).slice(0, 5).join(', ')}`);
+  }
+  if (style.imagery) {
+    const wants = STYLE_AXES.imagery[style.imagery];
+    const big = m.images.filter((i) => i.share >= 10);
+    if (!wants && m.images.length) warn(m.images[0].selector, `image covering ${m.images[0].share} % of the first viewport with imagery "type-only"`);
+    if (wants && !big.length) warn('first viewport', `no image of at least 10 % of the first viewport with imagery "${style.imagery}"`);
+  }
+  if (!isRef) return out;
+  if (style.type_contrast && m.top) {
+    const [lo, hi] = STYLE_AXES.type_contrast[style.type_contrast];
+    const ratio = m.top.px / m.body;
+    if (ratio < lo - 0.005 || ratio > hi + 0.005) warn(m.top.selector, `largest font size ${Math.round(m.top.px * 10) / 10} px is ${ratio.toFixed(1)} times body size (${Math.round(m.body * 10) / 10} px) with type contrast "${style.type_contrast}" (${range([lo, hi])}) "${m.top.text}"`);
+  }
+  if (style.density) {
+    const [lo, hi] = STYLE_AXES.density[style.density];
+    const pads = m.sections.map((s) => s.pad).sort((a, b) => a - b);
+    if (!pads.length) out.push({ severity: 'manual', selector: 'sections', detail: `no page section with vertical padding found; measure density "${style.density}" by hand` });
+    else {
+      const median = pads[Math.floor((pads.length - 1) / 2)];
+      if (median < lo || median > hi) warn('sections', `median section padding ${median} px over ${pads.length} section(s) with density "${style.density}" (${range([lo, hi])} px); first: ${m.sections[0].selector}`);
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -785,7 +946,7 @@ function cssEffectFindings(runs, patterns) {
 // ---------------------------------------------------------------------------
 // Reports
 // ---------------------------------------------------------------------------
-const ORDER = ['load', 'reflow', 'contrast', 'gradient-text', 'animation', 'reduced-motion', 'image-alt', 'image-priority', 'accessible-name', 'target-size', 'viewport-meta', 'css-no-effect', 'console'];
+const ORDER = ['load', 'reflow', 'contrast', 'gradient-text', 'animation', 'reduced-motion', 'image-alt', 'image-priority', 'accessible-name', 'target-size', 'viewport-meta', 'style-position', 'css-no-effect', 'console'];
 const countBy = (fs_) => ({ error: fs_.filter((f) => f.severity === 'error').length, warn: fs_.filter((f) => f.severity === 'warn').length, manual: fs_.filter((f) => f.severity === 'manual').length });
 const summaryLine = (c, n) => `render-check: ${c.error} error(s), ${c.warn} warning(s), ${c.manual} manual check(s) at ${n} width(s)`;
 function grouped(findings, widths) {
@@ -845,6 +1006,19 @@ async function main() {
     process.stderr.write(`render-check: Chrome not found${args.chrome ? ` at ${args.chrome}` : ''}. Install Google Chrome or Chromium, or pass --chrome <path> (or set CHROME_PATH).\n`);
     process.exit(2);
   }
+  // Style position: the brand profile of the data folder first, then the direction file on top, axis by axis.
+  if (args.direction) {
+    try {
+      const data = findDataFolder(process.cwd());
+      const brand = data && fs.existsSync(path.join(data, 'brand.md')) ? readStyle(path.join(data, 'brand.md')) : {};
+      const own = readStyle(args.direction);
+      if (!Object.keys(own).length) throw new Error('no style position found (expected "style:" with at least one axis in the front matter)');
+      args.style = { ...brand, ...own };
+    } catch (e) { usage(`direction ${args.direction}: ${e.message}`); }
+    // Density and type contrast are judged at the tested width closest to 1280 px, from 1024 px up.
+    const wide = args.widths.filter((w) => w >= 1024);
+    args.styleWidth = wide.length ? wide.reduce((a, b) => (Math.abs(b - 1280) < Math.abs(a - 1280) ? b : a)) : null;
+  }
   let outDir = null;
   if (args.out) outDir = path.resolve(args.out);
   else if (args.out === undefined) { const data = findDataFolder(process.cwd()); if (data) outDir = path.join(data, 'reports', `${today()}-${slugFor(args.url)}-render`); }
@@ -879,12 +1053,15 @@ async function main() {
   try { cdp.close(); } catch {}
   await chrome.cleanup();
 
+  if (args.style && args.styleWidth === null && (args.style.density || args.style.type_contrast)) {
+    all.push({ width: args.widths[0], check: 'style-position', severity: 'manual', selector: 'widths', detail: 'density and type contrast are measured at 1024 px or wider; add such a width', alsoAt: [] });
+  }
   const cssEffect = args.cssEffect ? cssEffectFindings(args.cssEffectRuns, args.cssEffect) : null;
   if (cssEffect) { all.push(...cssEffect.findings); meta.cssEffect = cssEffect.summary; }
   const counts = countBy(all);
   if (outDir) fs.writeFileSync(path.join(outDir, 'report.md'), mdReport(meta, all));
   if (args.format === 'json') {
-    process.stdout.write(JSON.stringify({ tool: 'render-check', version: VERSION, url: args.url, browser: meta.browser, level: args.level, reducedMotion: args.reducedMotion, widths: args.widths, outDir, summary: counts, cssEffect: cssEffect ? cssEffect.summary : undefined, findings: all }, null, 2) + '\n');
+    process.stdout.write(JSON.stringify({ tool: 'render-check', version: VERSION, url: args.url, browser: meta.browser, level: args.level, reducedMotion: args.reducedMotion, widths: args.widths, outDir, style: args.style || undefined, summary: counts, cssEffect: cssEffect ? cssEffect.summary : undefined, findings: all }, null, 2) + '\n');
   } else process.stdout.write(textReport(meta, all));
   process.exit(counts.error ? 1 : 0);
 }

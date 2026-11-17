@@ -27,7 +27,7 @@ Re-read the prohibitions in `site-design` first, then run this as a separate rev
 `render-check` renders the live URL in the local Chrome (Node 22+) at every width above and measures overflow (1.4.10), text contrast over the real background, gradient text, endless animations, alt text, image priority (largest image of the first viewport), accessible names, 24 px targets, zoom lock and console errors; screenshots and `report.md` go to `website-builder/reports/<date>-<slug>-render/`. Exit 1 means an error-level finding. Fix those and check every `manual` finding by hand. Details: `scripts/README.md`.
 
 ```
-node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]
+node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa] [--direction <direction.md>] [--css-effect]
 ```
 
 **CSS** (when CSS was written or changed)
@@ -41,10 +41,8 @@ node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]
 - [ ] `direction/*` findings: none. They are warnings, so the exit code does not catch them.
 
 **Style position** (when the direction sets one)
-- [ ] Density: vertical padding of a standard section at 1280 px, measured, within the confirmed stage.
-- [ ] Shape and type contrast: computed corner radius of a card, a button and an input, and largest font size divided by body size, within the confirmed stage.
-- [ ] Color budget: hue families besides neutrals and status colors counted on the render.
-- [ ] Imagery: the first viewport shows what the stage says (photo, illustration, or text only).
+- [ ] `render-check <url> --direction <direction.md>`: no `style-position` finding, or each one listed with a reason. They are warnings, so the exit code does not catch them.
+- [ ] By eye, because the script cannot tell: status colors counted as brand colors, and whether the image is a photo or an illustration as the stage says.
 
 **Measure**
 - [ ] Contrast: body text and labels ≥ 4.5:1, large text and UI ≥ 3:1, measured over the real background (images, overlays).

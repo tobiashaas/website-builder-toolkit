@@ -19,7 +19,7 @@ State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes 
 
 ## Scripts
 
-- [ ] `render-check --direction`: measure density (section padding), color budget (hue families by area) and imagery in the first viewport against the style position.
+- [ ] `render-check --direction`: tell status colors from brand colors (read the brand profile's palette); weigh hue families by area; tell photos from illustrations.
 - [ ] `slop-lint`: `direction/shape` for Tailwind classes (`rounded-*`) and for values behind `var()`.
 - [ ] Script that renders a reference URL and prints its style position.
 - [ ] `render-check --css-effect`: judge state selectors (`:hover`, `:focus-visible`) by forcing the state through the DevTools protocol; read stylesheets from other origins; run over a list of URLs and report only what is redundant on all of them, and rules that match on none.
