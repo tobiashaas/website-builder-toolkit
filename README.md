@@ -33,8 +33,8 @@ The wizard looks at your project, asks one question at a time with a recommendat
 | `site-brand` | Brand profile by interview (rounds with a recommendation) or from existing guidelines |
 | `site-structure` | Inventory crawl, page types by intent, pillars and clusters, navigation, content model, redirects for relaunches |
 | `site-seo` | Search data before copy, titles and descriptions, structured data that matches the page, local SEO, indexing, AI search; ships `seo-check.mjs` |
-| `site-direction` | Direction, concept and skeleton, confirmed before styling; variants for important pages |
-| `site-audit` | Anti-slop check on the rendered result; ships `slop-lint` (50 rules) |
+| `site-direction` | Direction, concept, style position and skeleton, confirmed before styling; variants for important pages |
+| `site-audit` | Anti-slop check on the rendered result; ships `slop-lint` (52 rules) |
 | `site-design` | Subtract, then spacing, color, icons, copy, type, layout, details, one moment, motion, each checked |
 | `site-copy` | Copy in the brand's voice; German and English tells |
 | `site-polish` | States, the details people feel, motion, scored by a fresh reviewer |

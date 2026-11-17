@@ -27,6 +27,7 @@ Paths can be files or folders. Folders are walked recursively; `node_modules`, `
 | Option | Values | Default | Effect |
 | --- | --- | --- | --- |
 | `--brand <file>` | path to a brand profile | none | enables `brand/*` rules (see below) |
+| `--direction <file>` | path to a confirmed direction | none | enables `direction/*` rules from the style position in its front matter (see below) |
 | `--adapter <list>` | `acss`, `tailwind`, `etch`, `bricks` (comma-separated) | none | enables `acss/*` or `tailwind/*` rules; `etch` and `bricks` are accepted but add no rules yet, combine them with `acss` if the project uses Automatic.css |
 | `--lang <code>` | `de`, `en`, `auto` | `auto` | copy language; `auto` decides per file (`<html lang>`, else word frequency) |
 | `--format <fmt>` | `text`, `json` | `text` | output format |
@@ -81,6 +82,7 @@ Looked up in the current folder, or passed with `--config`. All keys are optiona
   "rules": { "copy/soft-hype-word": "off", "css/transition-all": "error" },
   "ignore": ["legacy/**", "**/*.generated.css"],
   "brand": "brand.md",
+  "direction": "website-builder/direction/home.md",
   "adapter": "acss",
   "lang": "de",
   "failOn": "warn",
@@ -91,7 +93,7 @@ Looked up in the current folder, or passed with `--config`. All keys are optiona
 
 - `rules`: per-rule severity override: `off`, `info`, `warn`, `error`.
 - `ignore`: globs relative to the current folder (`*`, `**`, `?`).
-- `brand`: resolved relative to the config file.
+- `brand`, `direction`: resolved relative to the config file.
 - `thresholds`: `pxDistinct` (distinct px values before `css/px-sprawl`), `important` (`!important` count before `css/important-overuse`), `rounded` (`rounded-2xl/3xl` uses before `tailwind/rounded-overuse`), `glowBlurPx` (minimum blur for `design/glow-shadow`), `scaleMax` (largest accepted hover scale), `trackingEm` (letter-spacing that counts as wide for uppercase).
 
 ## Brand profile front matter
@@ -125,6 +127,30 @@ fonts: ["Source Serif 4", "Inter"]
 banned_words: [Synergie]
 banned_phrases: ["rundum sorglos"]
 claims_never: ["100 % Verfügbarkeit"]
+---
+```
+
+## Style position
+
+`--direction` reads `style:` from the front matter of a direction file (`site-direction` skill, `template.md`). A brand profile may carry the same block as a site-wide default; the direction file wins axis by axis. An unknown stage is a usage error (exit 2).
+
+| Axis | Stages | Checked by |
+| --- | --- | --- |
+| `shape` | `sharp` \| `soft` \| `round` | `direction/shape`: literal corner radius above 2 px (`sharp`) or 10 px (`soft`) in `border-radius` and `--*radius*` properties; percentages, `var()` and `calc()` are skipped; `round` has no upper bound |
+| `type_contrast` | `flat` \| `medium` \| `strong` | `direction/type-contrast`: largest font size in a file above 2 times (`flat`) or 3.5 times (`medium`) body size; body size is the `html`, `body` or `:root` font size in that file, else 16 px; `clamp()` counts with its maximum |
+| `density`, `color_budget`, `imagery` | see `site-direction` | read and validated, not checked yet |
+
+```yaml
+---
+page: home
+confirmed_by: "A. Person"
+confirmed_on: 2026-11-17
+style:
+  density: regular
+  type_contrast: medium
+  shape: soft
+  color_budget: one-accent
+  imagery: photo
 ---
 ```
 
@@ -184,6 +210,8 @@ In Markdown and plain text, words in quotes or emphasis and lines that list seve
 | `brand/off-palette-color` | warn | brand | Color not in the brand palette. | Use a palette color or its token (see colors in the brand profile). |
 | `brand/off-brand-font` | warn | brand | Font family not listed in the brand profile. | Use a family from fonts in the brand profile. |
 | `brand/motion-none` | warn | brand | Animation, but the brand profile says motion: none. | Remove the animation; show state changes instantly. |
+| `direction/shape` | warn | style position | Corner radius outside the confirmed shape. | Use the radius of the confirmed shape (sharp: 0 to 2 px, soft: 3 to 10 px), or change the style position and have it confirmed again. |
+| `direction/type-contrast` | warn | style position | Largest font size outside the confirmed type contrast. | Bring the largest size within the confirmed range (flat: up to 2 times body size, medium: up to 3.5 times), or change the style position and have it confirmed again. |
 | `a11y/outline-none` | error | core | Focus outline removed without a replacement focus style. | Keep the outline or add :focus-visible { outline: 2px solid <token>; outline-offset: 2px }. |
 | `a11y/zoom-disabled` | error | core | Pinch zoom disabled (user-scalable=no / maximum-scale=1). | Use <meta name="viewport" content="width=device-width, initial-scale=1">. |
 | `a11y/img-alt` | error | core | Image without alt text. | Add alt describing the content, or alt="" if purely decorative. |

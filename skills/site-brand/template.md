@@ -24,6 +24,13 @@ accent_budget: "a few percent of the screen"
 fonts:                    # families actually licensed and loaded
   - ""
 
+style:                    # optional: site-wide style position (see site-direction); a direction may deviate per piece
+  density: ""             # airy | regular | dense
+  type_contrast: ""       # flat | medium | strong
+  shape: ""               # sharp | soft | round
+  color_budget: ""        # one-accent | two-families | colorful
+  imagery: ""             # photo | illustration | type-only
+
 banned_words: []          # single words that must never appear
 banned_phrases: []        # phrases, slogans or constructions that must never appear
 claims_never: []          # promises the brand may not make (guarantees, response times, "100 %")

@@ -6,6 +6,7 @@ State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes 
 
 - [ ] **Privacy checks in `render-check`:** requests to third-party hosts before consent (fonts, scripts, video, maps), cookies set on first load, self-hosted fonts.
 - [ ] **Performance checks in `render-check`:** page weight, largest images vs. displayed size, missing `loading="lazy"` below the fold, Largest Contentful Paint and layout shift from the performance timeline. Done so far: `image-priority`, which takes the largest `img` of the first viewport as a stand-in for the LCP element; replace it with the real LCP entry.
+- [ ] **Field-test the style position:** one real page with two variants from different starting points; adjust the stage thresholds from what the reviewer measures.
 - [ ] **Second field test:** full wizard run on an Etch site (mode "Full website"), to test `site-etch` with native elements and the flow from structure to verify.
 - [ ] **Test the skills.sh install** (`npx skills add tobiashaas/website-builder-toolkit`) and record the result in the README.
 
@@ -17,6 +18,10 @@ State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes 
 - [ ] GitHub Actions: run all script test suites on push (Node 18, 20, 22; Chrome for `render-check`).
 
 ## Scripts
+
+- [ ] `render-check --direction`: measure density (section padding), color budget (hue families by area) and imagery in the first viewport against the style position.
+- [ ] `slop-lint`: `direction/shape` for Tailwind classes (`rounded-*`) and for values behind `var()`.
+- [ ] Script that renders a reference URL and prints its style position.
 
 - [ ] `slop-lint`: implement the lint hints listed in `site-etch` and `site-bricks` (deep div nesting, divs where containers belong, HTML inside code elements, `href="#"`).
 - [ ] `slop-lint`: resolve `var(--…)` tokens when a token file is given; read JSX `style={{…}}` objects; check focus styles across files.

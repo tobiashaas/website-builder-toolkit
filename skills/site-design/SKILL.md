@@ -81,7 +81,7 @@ Load `site-copy` and the language file. The short version:
 - Sentence case. Do not use uppercase labels with wide tracking unless the borrowed object is uppercase.
 - Tabular figures for numbers that update or align; one number format per screen.
 - At most five sizes. Negative tracking only on display sizes.
-- **Check:** count sizes and weights on the render; lint `design/heavy-weight`, `design/uppercase-tracking` clean.
+- **Check:** count sizes and weights on the render; lint `design/heavy-weight`, `design/uppercase-tracking` clean; with `--direction`, `direction/type-contrast` clean.
 
 ## 6. Layout
 
@@ -103,7 +103,7 @@ Load `site-copy` and the language file. The short version:
 - Stat cards show number, label and change; no decorative sparklines or icons.
 - Hover and focus states exist for every interactive element, in palette colors; focus stays visible.
 - Consistent image ratios, radii and spacing across the page.
-- **Check:** walk every interactive element with keyboard and pointer.
+- **Check:** walk every interactive element with keyboard and pointer; with `--direction`, lint `direction/shape` clean.
 
 ## 8. The moment
 

@@ -336,6 +336,37 @@ const RULES = [
       { scope: 'class', re: /(?<![\w-])(?:[\w-]+:)*animate-(?!none\b)[\w-]+/ },
     ] },
 
+  // ---------------- direction ----------------
+  { id: 'direction/shape', severity: 'warn', needs: 'style position',
+    when: (env) => env.style?.shape === 'sharp' || env.style?.shape === 'soft',
+    message: 'Corner radius outside the confirmed shape.',
+    fix: 'Use the radius of the confirmed shape (sharp: 0 to 2 px, soft: 3 to 10 px), or change the style position and have it confirmed again.',
+    detect: [
+      { scope: 'decl', check: (d, b, f, env) => {
+        if (!RADIUS_PROP_RE.test(d.prop)) return null;
+        const max = STYLE_LIMITS.shape[env.style.shape];
+        const r = radiusPx(d.value);
+        return r > max ? { index: d.valueIndex, message: `Corner radius ${fmtPx(r)} with shape "${env.style.shape}" (up to ${max} px).` } : null; } },
+    ] },
+  { id: 'direction/type-contrast', severity: 'warn', needs: 'style position',
+    when: (env) => env.style?.type_contrast === 'flat' || env.style?.type_contrast === 'medium',
+    message: 'Largest font size outside the confirmed type contrast.',
+    fix: 'Bring the largest size within the confirmed range (flat: up to 2 times body size, medium: up to 3.5 times), or change the style position and have it confirmed again.',
+    detect: [
+      { scope: 'file', check: (f, env) => {
+        const max = STYLE_LIMITS.type_contrast[env.style.type_contrast];
+        let body = 16, top = null;
+        for (const b of f.blocks) for (const d of b.decls) {
+          if (d.prop !== 'font-size' && !FLUID_TYPE_TOKEN_RE.test(d.prop)) continue;
+          const px = fontSizePx(d.value);
+          if (px === null) continue;
+          if (d.prop === 'font-size' && /^(?:\s*(?:html|body|:root)\s*,?)+$/.test(b.sel || '')) { body = px; continue; }
+          if (!top || px > top.px) top = { px, index: d.valueIndex };
+        }
+        return top && top.px / body > max
+          ? [{ index: top.index, message: `Largest font size ${fmtPx(top.px)} is ${(top.px / body).toFixed(1)} times body size with type contrast "${env.style.type_contrast}" (up to ${max}).` }] : null; } },
+    ] },
+
   // ---------------- a11y ----------------
   { id: 'a11y/outline-none', severity: 'error',
     message: 'Focus outline removed without a replacement focus style.',
@@ -516,6 +547,47 @@ function hexToRgb(hex) {
   return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16), a: h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1 };
 }
 function num(v, scale = 1) { return v.endsWith('%') ? (parseFloat(v) / 100) * scale : parseFloat(v); }
+// Style position: where a piece sits on the style axes (site-direction). Read from --direction or the brand profile.
+const STYLE_AXES = {
+  density: ['airy', 'regular', 'dense'],
+  type_contrast: ['flat', 'medium', 'strong'],
+  shape: ['sharp', 'soft', 'round'],
+  color_budget: ['one-accent', 'two-families', 'colorful'],
+  imagery: ['photo', 'illustration', 'type-only'],
+};
+// Upper bounds the linter can check in CSS: corner radius in px, largest font size as a multiple of body size.
+const STYLE_LIMITS = { shape: { sharp: 2, soft: 10 }, type_contrast: { flat: 2, medium: 3.5 } };
+const RADIUS_PROP_RE = /^(?:border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius|--(?:[\w-]+-)?radius(?:-[\w-]+)?)$/;
+const fmtPx = (v) => `${Math.round(v * 10) / 10} px`;
+// Reads a style position; returns { style } or { error }. Empty values mean "not set".
+function parseStyle(raw) {
+  const style = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { style };
+  for (const [axis, allowed] of Object.entries(STYLE_AXES)) {
+    const v = raw[axis] ?? raw[axis.replace('_', '-')];
+    if (v === undefined || v === null || v === '') continue;
+    const s = String(v).trim().toLowerCase();
+    if (!allowed.includes(s)) return { error: `style.${axis}: "${v}" is not one of ${allowed.join(', ')}` };
+    style[axis] = s;
+  }
+  return { style };
+}
+// Largest literal corner radius in a value, in px (rem and em counted as 16 px). Percentages, var() and calc() are skipped.
+function radiusPx(value) {
+  let max = 0;
+  for (const tok of value.split(/[\s/]+/)) {
+    const m = /^(\d*\.?\d+)(px|rem|em)$/i.exec(tok);
+    if (m) max = Math.max(max, parseFloat(m[1]) * (m[2].toLowerCase() === 'px' ? 1 : 16));
+  }
+  return max;
+}
+// A font size in px: the maximum of a clamp(), or a px or rem literal. Relative sizes (em, %) and var() give null.
+function fontSizePx(value) {
+  const c = clampRange(value);
+  if (c) return c.max;
+  const m = /^(\d*\.?\d+)(px|rem)$/i.exec(value.trim());
+  return m ? parseFloat(m[1]) * (m[2].toLowerCase() === 'px' ? 1 : 16) : null;
+}
 // Custom properties that hold a font size: --text-xl, --font-size-h1, --fs-2, --h1.
 const FLUID_TYPE_TOKEN_RE = /^--(?:[\w-]+-)?(?:text|font-size|fs|h[1-6])(?:-[\w-]+)?$/;
 // Min and max of the first clamp() in a value, in px (rem and em counted as 16 px), or null.
@@ -703,6 +775,7 @@ function loadBrand(file) {
       .filter((o) => o && o.path && o.address)
       .map((o) => ({ path: String(o.path), address: str(o.address), re: globToRe(String(o.path)) })),
     fonts,
+    style: y.style,
     _hex: hexes,
   };
 }
@@ -728,6 +801,13 @@ function findProjectData(start) {
     if (up === dir) return null;
     dir = up;
   }
+}
+// Direction file (site-direction): the style position sits under style: in the front matter.
+function loadDirection(file) {
+  const src = fs.readFileSync(file, 'utf8');
+  const m = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(src);
+  if (!m) throw new Error('no front matter');
+  return (parseYaml(m[1]) || {}).style;
 }
 function loadSetup(dataDir) {
   const f = dataDir && path.join(dataDir, 'setup.md');
@@ -1089,7 +1169,7 @@ function lintFile(f, cfg) {
   if (ov) brand = { ...brand, address: ov.address };
   const env = {
     lang: cfg.lang === 'auto' ? detectLang(f) : cfg.lang,
-    adapters: cfg.adapters, brand, brandRe: cfg.brandRe, palette: cfg.palette, fonts: cfg.brand?.fonts || [], t: cfg.thresholds,
+    adapters: cfg.adapters, brand, brandRe: cfg.brandRe, palette: cfg.palette, fonts: cfg.brand?.fonts || [], t: cfg.thresholds, style: cfg.style,
   };
   const prose = f.kind === 'md' || f.kind === 'txt';
   const findings = [];
@@ -1210,12 +1290,13 @@ function walk(p, out, cfg) {
   }
 }
 function parseArgs(argv) {
-  const a = { paths: [], format: 'text', failOn: 'error', lang: null, adapters: null, brand: null, config: null, listRules: false, mdCode: false };
+  const a = { paths: [], format: 'text', failOn: 'error', lang: null, adapters: null, brand: null, direction: null, config: null, listRules: false, mdCode: false };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const val = () => { const [k, v] = x.split('='); if (v !== undefined) return v; if (i + 1 >= argv.length) usage(`missing value for ${k}`); return argv[++i]; };
     if (x === '-h' || x === '--help') usage();
     else if (x.startsWith('--brand')) a.brand = val();
+    else if (x.startsWith('--direction')) a.direction = val();
     else if (x.startsWith('--adapter')) a.adapters = val();
     else if (x.startsWith('--lang')) a.lang = val();
     else if (x.startsWith('--format')) a.format = val();
@@ -1231,6 +1312,7 @@ function parseArgs(argv) {
 function usage(err) {
   const txt = `Usage: node scripts/slop-lint.mjs [paths...] [options]
   --brand <brand.md>        brand profile (YAML front matter) for brand/* rules
+  --direction <file>        confirmed direction (YAML front matter with style:) for direction/* rules
   --adapter <list>          acss | tailwind | etch | bricks (comma-separated)
   --lang <de|en|auto>       copy language (default: auto per file)
   --format <text|json|md>   output format (md only with --list-rules)
@@ -1288,8 +1370,18 @@ function main() {
   if (brandPath) {
     try { brand = loadBrand(brandPath); } catch (e) { usage(`cannot read brand profile ${brandPath}: ${e.message}`); }
   }
+  // Style position: the direction file wins over the brand profile, axis by axis.
+  const directionPath = args.direction ?? (fileCfg.direction ? path.resolve(cfgDir, fileCfg.direction) : null);
+  let directionStyle;
+  if (directionPath) {
+    try { directionStyle = loadDirection(directionPath); } catch (e) { usage(`cannot read direction ${directionPath}: ${e.message}`); }
+  }
+  const brandStyle = parseStyle(brand?.style), dirStyle = parseStyle(directionStyle);
+  if (brandStyle.error) usage(`brand profile ${brandPath}: ${brandStyle.error}`);
+  if (dirStyle.error) usage(`direction ${directionPath}: ${dirStyle.error}`);
+  const style = { ...brandStyle.style, ...dirStyle.style };
   const cfg = {
-    lang, adapters, brand, overrides,
+    lang, adapters, brand, overrides, style,
     thresholds: { ...THRESHOLDS, ...(fileCfg.thresholds || {}) },
     brandRe: { words: brand && wordRe(brand.banned_words.map(esc)), phrases: brand && phraseRe(brand.banned_phrases), claims: brand && phraseRe(brand.claims_never) },
     palette: brand ? brand._hex.map(hexToRgb).filter(Boolean) : [],
@@ -1314,7 +1406,7 @@ function main() {
   const flagged = new Set(findings.map((x) => x.file)).size;
   if (format === 'json') {
     process.stdout.write(JSON.stringify({ tool: 'slop-lint', version: 1, filesScanned: files.length, summary: { ...count, files: flagged },
-      options: { lang, adapters: [...adapters], brand: brandPath || null, failOn }, findings }, null, 2) + '\n');
+      options: { lang, adapters: [...adapters], brand: brandPath || null, direction: directionPath || null, style, failOn }, findings }, null, 2) + '\n');
   } else {
     for (const x of findings) process.stdout.write(`${x.file}:${x.line}:${x.column}  ${x.severity.padEnd(5)}  ${x.rule}  ${x.message}  → ${x.fix}\n`);
     process.stdout.write(`${findings.length ? '\n' : ''}slop-lint: ${count.error} error(s), ${count.warn} warning(s), ${count.info} info in ${flagged} of ${files.length} file(s)\n`);

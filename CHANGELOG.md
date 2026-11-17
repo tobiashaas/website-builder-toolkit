@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `site-direction`: style position on five measurable axes (density, type contrast, shape, color budget, imagery), a direction template with front matter, and four starting points for variants. The brand profile can set a site-wide position under `style`.
+- `slop-lint`: `--direction <file>` and two rules, `direction/shape` and `direction/type-contrast` (52 rules).
+
 - Web platform rules in `site-design/plain-css.md` and `site-polish`: image priority for the largest image of the first viewport, fluid type range, `font-size-adjust`, limits of `text-wrap: balance`, forced colors. Sources in `docs/EVIDENCE.md`.
 - `slop-lint`: two new rules, `css/fluid-type-range` and `perf/lazy-high-priority` (50 rules).
 - `render-check`: new check `image-priority` (largest `img` of the first viewport lazy-loaded or without `fetchpriority="high"`; more than two high-priority images).

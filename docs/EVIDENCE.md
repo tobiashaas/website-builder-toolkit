@@ -143,5 +143,6 @@ Rules we want in the toolkit with no evidence in our notes. They stay in as **cr
 - **Brand-profile interview:** whether a structured interview yields better brand fit than importing existing guidelines. Untested.
 - **Polish score anchors (3–10) and the "moment" or signature detail.** Craft judgment.
 - **Social carousels, slide formats, LinkedIn image design.** Singh et al. 2023 on B2B image content exists in our notes but without a usable finding.
+- **Style axes, their stage thresholds and the four starting points** (`site-direction`). Craft judgment. The step itself rests on the direction-first findings above; the numbers (radius 2 and 10 px, type contrast 2 and 3.5, section padding 56 and 96 px) are ours and untested.
 - **Dark mode, responsive breakpoints, mobile-first layout.** No evidence in our notes beyond mobile table formatting.
 - **Real user testing** (5-second tests, think-aloud) is recommended by the dashboard research ([2608.06845](https://arxiv.org/abs/2608.06845)) but the toolkit cannot run it; it can only suggest it in `verify.md`.

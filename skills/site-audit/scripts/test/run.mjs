@@ -74,7 +74,17 @@ const cases = [
     expect: ['css/fluid-type-range', 'perf/lazy-high-priority'],
     count: { 'css/fluid-type-range': 2, 'perf/lazy-high-priority': 1 } },
   { name: 'platform rules: fluid type within range, lazy image below the fold pass', args: [fx('clean/platform.css'), fx('clean/platform.html')], status: 0, total: 0 },
-  { name: 'clean fixtures: zero findings',args: [fx('clean')], status: 0, total: 0 },
+  { name: 'direction: sharp shape and flat type contrast', args: [fx('tells/direction.css'), '--direction', fx('direction-sharp.md')],
+    count: { 'direction/shape': 3, 'direction/type-contrast': 1 },
+    check: (r) => r.options.style.shape === 'sharp' && /4\.5 times body size/.test(r.findings.find((x) => x.rule === 'direction/type-contrast').message) },
+  { name: 'direction: no style position, no direction rules', args: [fx('tells/direction.css')], absent: ['direction/shape', 'direction/type-contrast'] },
+  { name: 'direction: style position from the brand profile (soft, medium)', args: [fx('tells/direction.css'), '--brand', fx('brand-style.md')],
+    count: { 'direction/shape': 2, 'direction/type-contrast': 1 } },
+  { name: 'direction: direction file overrides the brand profile per axis', args: [fx('tells/direction.css'), '--brand', fx('brand-style.md'), '--direction', fx('direction-sharp.md')],
+    count: { 'direction/shape': 3 }, check: (r) => r.options.style.shape === 'sharp' && r.options.style.imagery === 'photo' },
+  { name: 'direction: unknown axis value is a usage error', args: [fx('tells/direction.css'), '--direction', fx('direction-invalid.md')],
+    usageError: /style\.shape: "pointy" is not one of sharp, soft, round/ },
+  { name: 'clean fixtures: zero findings', args: [fx('clean')], status: 0, total: 0 },
   { name: 'clean fixtures with brand + adapters: zero errors', args: [fx('clean'), '--brand', brand, '--adapter', 'tailwind'], status: 0, errors: 0 },
   { name: 'clean German file with brand', args: [fx('clean/termine-de.md'), '--brand', brand], status: 0, total: 0 },
 ];
@@ -83,7 +93,9 @@ let failed = 0;
 for (const c of cases) {
   const problems = [];
   let r;
-  try { r = run(c.args, c.cwd); } catch (e) { problems.push(e.message); }
+  try { r = run(c.args, c.cwd); if (c.usageError) problems.push('expected a usage error'); }
+  catch (e) { if (!c.usageError || !c.usageError.test(e.message)) problems.push(e.message); }
+  if (c.usageError) r = null;
   if (r) {
     const ids = r.findings.map((x) => x.rule);
     for (const id of c.expect || []) if (!ids.includes(id)) problems.push(`missing ${id}`);
