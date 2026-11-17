@@ -27,6 +27,16 @@ const EXAMPLES = 5;
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
+// True when a robots value carries the directive noindex or none. Directives are comma-separated and may be
+// prefixed with a crawler name ("googlebot: noindex"); "max-image-preview:none" is not a noindex.
+function hasNoindex(value) {
+  return String(value).toLowerCase().split(',').some((part) => {
+    const p = part.trim();
+    if (/^(?:max-image-preview|max-snippet|max-video-preview|unavailable_after)\s*:/.test(p)) return false;
+    const d = p.replace(/^[a-z0-9_-]+\s*:\s*/, '');
+    return d === 'noindex' || d === 'none';
+  });
+}
 function usage(msg) {
   if (msg) process.stderr.write(`seo-check: ${msg}\n`);
   process.stderr.write(`usage: node seo-check.mjs <url...> [--from-inventory <inventory.json>] [--brand <brand.md>|--no-brand]
@@ -548,7 +558,7 @@ function checkPage(pg, ctx) {
     }
   }
   const robots = p.robots.join(', ');
-  if (/\b(noindex|none)\b/.test(robots) || /\b(noindex|none)\b/i.test(pg.xRobotsTag || '')) F('warn', 'noindex', `noindex set (${[robots, pg.xRobotsTag && `X-Robots-Tag: ${pg.xRobotsTag}`].filter(Boolean).join('; ')})`);
+  if (hasNoindex(robots) || hasNoindex(pg.xRobotsTag || '')) F('warn', 'noindex', `noindex set (${[robots, pg.xRobotsTag && `X-Robots-Tag: ${pg.xRobotsTag}`].filter(Boolean).join('; ')})`);
   if (/\bnofollow\b/.test(robots) || /\bnofollow\b/i.test(pg.xRobotsTag || '')) F('warn', 'nofollow', 'meta robots nofollow: links on this page pass no signals');
   if (!p.lang) F('warn', 'missing-lang', 'no lang attribute on <html>');
   else if (!LANG_RE.test(p.lang)) F('warn', 'invalid-lang', `lang="${p.lang}" is not a BCP 47 language tag`);
@@ -804,7 +814,7 @@ async function main() {
     pg.parsed = parsePage(decodeBody(res.body, pg.contentType), res.finalUrl);
     pg.title = pg.parsed.title;
     pg.canonical = pg.parsed.canonicals[0]?.href ?? null;
-    pg.noindex = /\b(noindex|none)\b/.test(pg.parsed.robots.join(' ')) || /\b(noindex|none)\b/i.test(pg.xRobotsTag || '');
+    pg.noindex = hasNoindex(pg.parsed.robots.join(', ')) || hasNoindex(pg.xRobotsTag || '');
     checkPage(pg, { brand });
   }
   checkAcross(pages);

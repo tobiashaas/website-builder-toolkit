@@ -12,7 +12,7 @@ Nothing is done because the agent thinks it looks right. Agents tend to report "
 ## After every pass
 
 1. Re-render the changed area at real size.
-2. Run `node <site-audit>/scripts/slop-lint.mjs <changed paths> --brand <brand.md> [--adapter …] [--lang …]`.
+2. Run `node <site-audit>/scripts/slop-lint.mjs <changed paths> --brand <brand.md> [--direction <direction.md>] [--adapter …] [--lang …]`.
 3. Fix errors before starting the next pass.
 
 ## Before handing over
@@ -31,13 +31,20 @@ node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]
 ```
 
 **CSS** (when CSS was written or changed)
-- [ ] `render-check <url> --css-effect` on every template: no declaration left that changes nothing. Remove one finding at a time and run again; two rules with the same value hide each other.
+- [ ] `render-check <url> --css-effect` on every template. A declaration is deleted only when it is reported on every template that loads the stylesheet; the check sees the load state, not open menus or dialogs. Remove one finding at a time and run again; two rules with the same value hide each other, and the finding names the twin.
 - [ ] The report's `left out` line holds only framework and core stylesheets; otherwise name the project's with `--css-only`.
 - [ ] Rules that match nothing: checked against the other pages, then deleted or kept with a reason.
 
 **Lint**
 - [ ] `slop-lint` passes at `--fail-on error` with brand, adapter and language set.
 - [ ] Remaining warnings are listed in the report with a reason.
+- [ ] `direction/*` findings: none. They are warnings, so the exit code does not catch them.
+
+**Style position** (when the direction sets one)
+- [ ] Density: vertical padding of a standard section at 1280 px, measured, within the confirmed stage.
+- [ ] Shape and type contrast: computed corner radius of a card, a button and an input, and largest font size divided by body size, within the confirmed stage.
+- [ ] Color budget: hue families besides neutrals and status colors counted on the render.
+- [ ] Imagery: the first viewport shows what the stage says (photo, illustration, or text only).
 
 **Measure**
 - [ ] Contrast: body text and labels ≥ 4.5:1, large text and UI ≥ 3:1, measured over the real background (images, overlays).
@@ -62,7 +69,7 @@ node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]
 
 **Final audit** from `site-design`, then a score from a fresh reviewer (`site-polish`).
 
-Order of the review: CSS without effect first (it changes the stylesheet), then render and lint again, then accessibility, then the final audit and the score. A score given before the CSS cleanup is void.
+Order of the review: CSS without effect first (it changes the stylesheet), then the final audit from `site-design` (it may still change the piece), then render, lint, measurements and accessibility on the result, then the score. A measurement or score taken before the last change is void.
 
 ## Optional
 

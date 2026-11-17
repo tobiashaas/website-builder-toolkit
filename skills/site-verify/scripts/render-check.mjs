@@ -25,9 +25,11 @@ const CONTRAST_CAP = 300;
 const SHOT_MAX_HEIGHT = 16000;
 const CSS_EFFECT_CAP = 4000; // declarations tested per width
 const CSS_EFFECT_LIST = 80; // findings listed before the rest is summed up
-// Stylesheets nobody on the project edits: WordPress core, plugins, the compiled Automatic.css, the Bricks theme, packages.
+const CSS_EFFECT_SAMPLE = 300; // matched elements compared per rule; more are sampled evenly
+// Stylesheets nobody on the project edits: WordPress core, plugins, the compiled Automatic.css (also by file name,
+// as in static exports), reset and normalize files, the Bricks theme, packages.
 // Left out of --css-effect unless --css-only names them.
-const CSS_VENDOR = String.raw`/wp-includes/|/wp-admin/|/plugins/|/automatic-css/|/themes/bricks/|/node_modules/|<style#(?:global-styles|wp-block-library|classic-theme-styles|core-block-supports|wp-emoji|automatic)`;
+const CSS_VENDOR = String.raw`/wp-includes/|/wp-admin/|/plugins/|/automatic-css/|/themes/bricks/|/node_modules/|/[^/?]*(?:automatic|acss|reset|normalize)[^/?]*\.css|<style#(?:global-styles|wp-block-library|classic-theme-styles|core-block-supports|wp-emoji|automatic)`;
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -398,23 +400,25 @@ function pageProbe(opts) {
 // query, transition and animation properties, over the cap).
 // ---------------------------------------------------------------------------
 function cssEffectProbe(opts) {
-  const label = (sh) => (sh.href ? sh.href.replace(location.origin, '') : `<style${sh.ownerNode && sh.ownerNode.id ? '#' + sh.ownerNode.id : ''}>`);
+  const base = (sh) => (sh.href ? sh.href.replace(location.origin, '') : `<style${sh.ownerNode && sh.ownerNode.id ? '#' + sh.ownerNode.id : ''}>`);
+  const seenLabel = new Map();
+  const labels = new Map(); // stylesheet -> unique label; anonymous <style> blocks get a running number
+  for (const sh of document.styleSheets) {
+    const n = (seenLabel.get(base(sh)) || 0) + 1;
+    seenLabel.set(base(sh), n);
+    labels.set(sh, n > 1 ? `${base(sh)} (${n})` : base(sh));
+  }
   const vendor = new RegExp(opts.vendor, 'i');
-  const want = (sh) => (opts.patterns.length ? opts.patterns.some((p) => label(sh).includes(p)) : !vendor.test(label(sh)));
-  const out = { decls: [], sheets: [], unreadable: [], others: [] };
+  const want = (name) => (opts.patterns.length ? opts.patterns.some((p) => name.includes(p)) : !vendor.test(name));
+  const out = { decls: [], sheets: [], unreadable: [], others: [], capped: false, altered: [], error: null };
   const STATE = /:(?:hover|focus|focus-visible|focus-within|active|visited|target|checked|disabled|invalid|user-invalid|open|popover-open|placeholder-shown)\b|::|:(?:before|after|first-line|first-letter)\b/i;
-  const SKIP_PROP = /^(?:transition|animation)(?:-|$)/;
-  // Running transitions would hide a change: the computed value right after a removal is still the old one.
-  const freeze = document.createElement('style');
-  freeze.textContent = '*,*::before,*::after{transition:none!important;animation:none!important}';
-  document.head.appendChild(freeze);
-  let tested = 0;
-  const styleRule = (rule, sheet, key, ctx) => {
-    const st = rule.style;
-    // Declarations as the browser serializes them: longhands that came from one shorthand are judged together.
+  // Not judged: transitions and animations (frozen during the probe) and border-image, which the serializer adds to every border shorthand.
+  const SKIP_PROP = /^(?:transition|animation|border-image)(?:-|$)/;
+  // Declarations as the browser serializes them: longhands that came from one shorthand are judged together.
+  const split = (cssText) => {
     const decls = [];
     let depth = 0, quote = null, cur = '';
-    for (const ch of st.cssText + ';') {
+    for (const ch of cssText + ';') {
       if (quote) { if (ch === quote) quote = null; cur += ch; continue; }
       if (ch === '"' || ch === "'") quote = ch;
       else if (ch === '(') depth++;
@@ -422,18 +426,68 @@ function cssEffectProbe(opts) {
       if (ch === ';' && depth <= 0) { const at = cur.indexOf(':'); if (at > 0) decls.push({ prop: cur.slice(0, at).trim(), text: cur.trim() }); cur = ''; continue; }
       cur += ch;
     }
+    return decls;
+  };
+  // Running transitions would hide a change: the computed value right after a removal is still the old one.
+  // A constructed stylesheet is not subject to a style-src policy and does not appear in document.styleSheets.
+  let freeze;
+  try {
+    freeze = new CSSStyleSheet();
+    freeze.replaceSync('*,*::before,*::after{transition:none!important;animation:none!important}');
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, freeze];
+  } catch (e) { out.error = `transitions could not be frozen (${e.message})`; return out; }
+
+  // CSS nesting, desugared the way the specification describes it: "&" stands for :is(parent),
+  // and a nested selector without "&" is a descendant of the parent.
+  const splitList = (sel) => {
+    const parts = [];
+    let depth = 0, cur = '';
+    for (const ch of sel) {
+      if (ch === '(' || ch === '[') depth++;
+      else if (ch === ')' || ch === ']') depth--;
+      if (ch === ',' && depth === 0) { parts.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    if (cur.trim()) parts.push(cur.trim());
+    return parts;
+  };
+  const resolve = (sel, parent) => (parent ? splitList(sel).map((s) => (s.includes('&') ? s.replace(/&/g, `:is(${parent})`) : `:is(${parent}) ${s}`)).join(', ') : sel);
+  // Where each "selector { declaration }" occurs, over every readable stylesheet, framework included.
+  const places = new Map();
+  const collect = (rules, name, parent) => {
+    for (const r of rules) {
+      const type = r.constructor.name;
+      const selector = type === 'CSSStyleRule' ? resolve(r.selectorText, parent) : parent;
+      if (type === 'CSSStyleRule') for (const d of split(r.style.cssText)) { const k = `${selector}|${d.text}`; if (!places.has(k)) places.set(k, []); places.get(k).push(name); }
+      if (type === 'CSSImportRule') { try { if (r.styleSheet) collect(r.styleSheet.cssRules, name, ''); } catch {} }
+      else if (r.cssRules && !/Keyframes/.test(type)) collect(r.cssRules, name, selector);
+    }
+  };
+  for (const sh of document.styleSheets) { try { collect(sh.cssRules, labels.get(sh), ''); } catch {} }
+
+  let tested = 0;
+  const scratch = document.createElement('i').style;
+  const styleRule = (rule, sheet, key, ctx, selector) => {
+    const st = rule.style;
+    const saved = st.cssText;
+    const decls = split(saved);
     let els = null, fixed = null;
+    // The probe restores a rule from its serialized text. Where that text does not survive a round trip
+    // (a shorthand with var() next to one of its longhands, the all shorthand), the rule is left untouched.
+    scratch.cssText = saved;
     if (!ctx.active) fixed = 'inactive';
-    else if (ctx.unchecked || STATE.test(rule.selectorText)) fixed = 'unchecked';
+    else if (ctx.unchecked || STATE.test(selector) || scratch.cssText !== saved || decls.length > 60 || /:\s*(?:;|$)/.test(saved)) fixed = 'unchecked';
     else {
-      try { els = [...document.querySelectorAll(rule.selectorText)]; } catch { fixed = 'unchecked'; }
+      try { els = [...document.querySelectorAll(selector)]; } catch { fixed = 'unchecked'; }
       if (els && !els.length) fixed = 'unmatched';
     }
-    const sample = els ? els.slice(0, 12) : [];
-    const saved = st.cssText;
+    // Every matched element up to the limit; beyond it an even spread, so the first elements in the document do not decide alone.
+    let sample = els || [];
+    if (sample.length > opts.sample) { const step = sample.length / opts.sample; sample = Array.from({ length: opts.sample }, (_, i) => sample[Math.floor(i * step)]); }
     for (const { prop, text } of decls) {
       let status = fixed;
-      if (!status && (SKIP_PROP.test(prop) || tested >= opts.cap)) status = 'unchecked';
+      if (!status && SKIP_PROP.test(prop)) status = 'unchecked';
+      if (!status && tested >= opts.cap) { status = 'unchecked'; out.capped = true; }
       if (!status) {
         tested++;
         const tmp = document.createElement('i').style;
@@ -444,33 +498,47 @@ function cssEffectProbe(opts) {
         st.removeProperty(prop);
         const after = read();
         st.cssText = saved; // restores value, priority and order
+        if (st.cssText !== saved) out.altered.push(`${sheet} › ${selector}`);
         status = before.some((v, i) => v !== after[i]) ? 'effect' : 'no-effect';
       }
-      out.decls.push({ key: `${key}|${prop}`, sheet, selector: rule.selectorText, text, status, n: els ? els.length : 0 });
+      const twins = (places.get(`${selector}|${text}`) || []);
+      const dup = twins.length > 1 ? [...new Set(twins.filter((x) => x !== sheet))].slice(0, 2).join(', ') || 'this stylesheet' : '';
+      out.decls.push({ key: `${key}|${prop}`, sheet, selector, text, status, n: els ? els.length : 0, sampled: sample.length, dup });
     }
   };
+  const mediaOn = (media) => !media || !media.mediaText || matchMedia(media.mediaText).matches;
   const walk = (rules, sheet, key, ctx) => {
     for (let i = 0; i < rules.length; i++) {
       const r = rules[i], k = `${key}.${i}`, type = r.constructor.name;
-      if (type === 'CSSStyleRule') { styleRule(r, sheet, k, ctx); if (r.cssRules && r.cssRules.length) walk(r.cssRules, sheet, k, { ...ctx, unchecked: true }); }
-      else if (type === 'CSSMediaRule') walk(r.cssRules, sheet, k, { ...ctx, active: ctx.active && matchMedia(r.media.mediaText).matches });
+      if (type === 'CSSStyleRule') {
+        const selector = resolve(r.selectorText, ctx.parent);
+        styleRule(r, sheet, k, ctx, selector);
+        if (r.cssRules && r.cssRules.length) walk(r.cssRules, sheet, k, { ...ctx, parent: selector });
+      }
+      else if (type === 'CSSNestedDeclarations') { if (ctx.parent) styleRule(r, sheet, k, ctx, ctx.parent); }
+      else if (type === 'CSSMediaRule') walk(r.cssRules, sheet, k, { ...ctx, active: ctx.active && mediaOn(r.media) });
       else if (type === 'CSSSupportsRule') walk(r.cssRules, sheet, k, { ...ctx, active: ctx.active && CSS.supports(r.conditionText) });
       else if (type === 'CSSLayerBlockRule') walk(r.cssRules, sheet, k, ctx);
-      else if (type === 'CSSImportRule') { try { if (r.styleSheet) walk(r.styleSheet.cssRules, sheet, k, ctx); } catch {} }
+      else if (type === 'CSSImportRule') {
+        const on = ctx.active && mediaOn(r.media) && (!r.supportsText || CSS.supports(r.supportsText));
+        try { if (r.styleSheet) walk(r.styleSheet.cssRules, sheet, k, { ...ctx, active: on }); } catch {}
+      }
       else if (/^CSS(?:Keyframes|FontFace|Page|Property|CounterStyle|Namespace|LayerStatement|FontFeatureValues|FontPaletteValues)Rule$/.test(type)) continue;
       else if (r.cssRules) walk(r.cssRules, sheet, k, { ...ctx, unchecked: true }); // @container, @scope, @starting-style
     }
   };
+  let index = 0;
   for (const sh of document.styleSheets) {
-    if (sh.ownerNode === freeze || sh.disabled) continue;
-    const name = label(sh);
-    if (!want(sh)) { out.others.push(name); continue; }
+    index++;
+    if (sh.disabled) continue;
+    const name = labels.get(sh);
+    if (!want(name)) { out.others.push(name); continue; }
     let rules;
     try { rules = sh.cssRules; } catch { out.unreadable.push(name); continue; }
     out.sheets.push(name);
-    walk(rules, name, name, { active: !sh.media.mediaText || matchMedia(sh.media.mediaText).matches, unchecked: false });
+    walk(rules, name, `${index}:${name}`, { active: mediaOn(sh.media), unchecked: false, parent: '' });
   }
-  freeze.remove();
+  document.adoptedStyleSheets = document.adoptedStyleSheets.filter((x) => x !== freeze);
   return out;
 }
 
@@ -486,6 +554,7 @@ async function checkWidth(cdp, url, width, args, outDir) {
   const console_ = [];
   const requests = new Map();
   let loaded = false;
+  let docStatus = null;
   const onEvent = (m) => {
     if (m.sessionId !== sessionId) return;
     const p = m.params;
@@ -504,7 +573,13 @@ async function checkWidth(cdp, url, width, args, outDir) {
         break;
       case 'Network.requestWillBeSent': requests.set(p.requestId, p.request.url); break;
       case 'Network.responseReceived':
+        if (p.type === 'Document' && docStatus === null && p.response.url.split('#')[0] === url.split('#')[0]) docStatus = p.response.status;
         if (p.response.status >= 400) console_.push({ kind: 'request', text: `HTTP ${p.response.status}`, where: p.response.url });
+        break;
+      case 'Page.javascriptDialogOpening':
+        // An open alert, confirm or prompt blocks the page and every measurement after it.
+        console_.push({ kind: 'dialog', text: `${p.type} dialog dismissed: ${String(p.message).slice(0, 120)}` });
+        s('Page.handleJavaScriptDialog', { accept: false }).catch(() => {});
         break;
       case 'Network.loadingFailed':
         if (!p.canceled) console_.push({ kind: 'request', text: p.blockedReason ? `blocked (${p.blockedReason})` : p.errorText, where: requests.get(p.requestId) || '' });
@@ -523,6 +598,7 @@ async function checkWidth(cdp, url, width, args, outDir) {
     const t0 = Date.now();
     while (!loaded && Date.now() - t0 < LOAD_TIMEOUT) await sleep(100);
     if (!loaded) add('load', 'warn', 'document', `load event did not fire within ${LOAD_TIMEOUT / 1000} s; measured anyway`);
+    if (docStatus !== null && docStatus >= 400) add('load', 'error', 'document', `the page answered HTTP ${docStatus}; what was measured is an error or block page, not the site (bot protection often blocks headless Chrome)`);
     await sleep(args.wait);
     // Scroll through once so lazy content loads, then back to the top.
     await s('Runtime.evaluate', { awaitPromise: true, expression: `(async () => { const h = innerHeight; for (let y = 0, i = 0; y < document.documentElement.scrollHeight && i < 40; y += h, i++) { scrollTo(0, y); await new Promise(r => setTimeout(r, 80)); } scrollTo(0, 0); await new Promise(r => setTimeout(r, 400)); })()` });
@@ -638,19 +714,19 @@ async function checkWidth(cdp, url, width, args, outDir) {
     // 7. Console and requests
     for (const c of console_) add('console', 'warn', c.kind, `${String(c.text).split('\n')[0].slice(0, 240)}${c.where ? ` (${c.where.slice(0, 160)})` : ''}`);
 
-    // 8. CSS effect (opt-in): collected per width, combined in main.
-    if (args.cssEffect) {
-      const ce = await s('Runtime.evaluate', { expression: `(${cssEffectProbe})(${JSON.stringify({ patterns: args.cssEffect, cap: CSS_EFFECT_CAP, vendor: CSS_VENDOR })})`, returnByValue: true });
-      if (ce.exceptionDetails) add('css-no-effect', 'manual', 'stylesheets', `CSS effect probe failed: ${String(ce.exceptionDetails.exception?.description || ce.exceptionDetails.text).split('\n')[0]}`);
-      else args.cssEffectRuns.push({ width, ...ce.result.value });
-    }
-
-    // 9. Screenshot
+    // 8. Screenshot
     if (outDir) {
       const m = await s('Page.getLayoutMetrics');
       const size = m.cssContentSize || m.contentSize;
       const shot = await s('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: Math.max(width, Math.ceil(size.width)), height: Math.min(SHOT_MAX_HEIGHT, Math.ceil(size.height)), scale: 1 } });
       fs.writeFileSync(path.join(outDir, `${width}.png`), Buffer.from(shot.data, 'base64'));
+    }
+    // 9. CSS effect (opt-in), after the screenshot because it touches the stylesheets. Collected per width, combined in main.
+    if (args.cssEffect) {
+      const ce = await s('Runtime.evaluate', { expression: `(${cssEffectProbe})(${JSON.stringify({ patterns: args.cssEffect, cap: CSS_EFFECT_CAP, sample: CSS_EFFECT_SAMPLE, vendor: CSS_VENDOR })})`, returnByValue: true });
+      if (ce.exceptionDetails) add('css-no-effect', 'manual', 'stylesheets', `CSS effect probe failed: ${String(ce.exceptionDetails.exception?.description || ce.exceptionDetails.text).split('\n')[0]}`);
+      else if (ce.result.value.error) add('css-no-effect', 'manual', 'stylesheets', `CSS effect not checked: ${ce.result.value.error}`);
+      else args.cssEffectRuns.push({ width, ...ce.result.value });
     }
     return findings;
   } finally {
@@ -675,14 +751,14 @@ function cssEffectFindings(runs, patterns) {
   if (!sheets.length && !unreadable.length) {
     const rest = skipped.slice(0, 12).join(', ') || 'none';
     add(w0, 'warn', 'stylesheets', patterns.length ? `no stylesheet matches "${patterns.join(', ')}"; on this page: ${rest}` : `no stylesheet of the project found; left out as framework or core: ${rest}. Name one with --css-only`);
-    return { findings, summary: { sheets, skipped, tested: 0, noEffect: 0, unmatched: 0, unchecked: 0 } };
+    return { findings, summary: { sheets, skipped, tested: 0, noEffect: 0, unmatched: 0, unchecked: 0, capped: false } };
   }
   const byKey = new Map();
   for (const run of runs) for (const d of run.decls) {
     if (!byKey.has(d.key)) byKey.set(d.key, { ...d, at: {} });
     const e = byKey.get(d.key);
     e.at[run.width] = d.status;
-    e.n = Math.max(e.n, d.n);
+    if (d.n > e.n) { e.n = d.n; e.sampled = d.sampled; }
   }
   const none = [], unmatched = new Set();
   let tested = 0, unchecked = 0;
@@ -695,12 +771,15 @@ function cssEffectFindings(runs, patterns) {
   }
   for (const d of none.slice(0, CSS_EFFECT_LIST)) {
     const ws = Object.keys(d.at).filter((w) => d.at[w] === 'no-effect').map(Number);
-    add(ws[0], 'warn', `${d.sheet} › ${d.selector}`, `${d.text} changes nothing on the ${d.n} matched element(s); another rule or the default already gives this value`, ws.slice(1));
+    add(ws[0], 'warn', `${d.sheet} › ${d.selector}`, `${d.text} changes nothing on ${d.sampled < d.n ? `${d.sampled} sampled of ${d.n}` : `the ${d.n}`} matched element(s); ${d.dup ? `the same declaration is also in ${d.dup}` : 'another rule or the default already gives this value'}`, ws.slice(1));
   }
   if (none.length > CSS_EFFECT_LIST) add(w0, 'warn', '…', `${none.length - CSS_EFFECT_LIST} more declarations without effect`);
   if (unmatched.size) add(w0, 'manual', 'stylesheets', `${unmatched.size} rule(s) match nothing on this page (first: ${[...unmatched][0]}); check the other pages before deleting them`);
   if (unreadable.length) add(w0, 'manual', 'stylesheets', `not readable from the page (other origin): ${unreadable.slice(0, 8).join(', ')}`);
-  return { findings, summary: { sheets, skipped, tested, noEffect: none.length, unmatched: unmatched.size, unchecked } };
+  const altered = [...new Set(runs.flatMap((r) => r.altered))];
+  if (altered.length) add(w0, 'manual', 'stylesheets', `${altered.length} rule(s) could not be restored exactly after the probe (first: ${altered[0]}); results for this run are not reliable`);
+  const capped = runs.some((r) => r.capped);
+  return { findings, summary: { sheets, skipped, tested, noEffect: none.length, unmatched: unmatched.size, unchecked, capped } };
 }
 
 // ---------------------------------------------------------------------------
@@ -719,7 +798,8 @@ const also = (f) => (f.alsoAt && f.alsoAt.length ? ` (also at ${f.alsoAt.join(',
 
 const cssEffectLines = (c) => [
   `css-effect: ${c.tested} declaration(s) tested in ${c.sheets.length} stylesheet(s): ${c.sheets.join(', ') || 'none'}`,
-  `css-effect: left out${c.skipped.length ? `: ${c.skipped.join(', ')}` : ' nothing'}`,
+  `css-effect: left out as framework or core${c.skipped.length ? `: ${c.skipped.join(', ')}` : ': nothing'}`,
+  `css-effect: ${c.noEffect} without effect, ${c.unmatched} rule(s) without a match, ${c.unchecked} declaration(s) not judged (states, pseudo-elements, container rules, inactive media, transitions)${c.capped ? `; stopped at ${CSS_EFFECT_CAP} declarations per width` : ''}`,
 ];
 function textReport(meta, findings) {
   const lines = [`render-check ${meta.url}`, `${meta.browser}, level ${meta.level.toUpperCase()}, reduced motion ${meta.reducedMotion ? 'emulated' : 'off'}`, ''];

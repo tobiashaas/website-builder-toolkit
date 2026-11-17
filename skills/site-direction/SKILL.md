@@ -36,7 +36,7 @@ The five lines say what the piece is. The style position says how it looks, in s
 | --- | --- | --- |
 | Density | `airy`, `regular`, `dense` | vertical padding of a standard section at 1280 px wide: 96 px or more, 56 to 95 px, 55 px or less |
 | Type contrast | `flat`, `medium`, `strong` | largest font size divided by body size: up to 2, up to 3.5, above 3.5 |
-| Shape | `sharp`, `soft`, `round` | corner radius of cards, buttons and inputs: 0 to 2 px, 3 to 10 px, 12 px or more |
+| Shape | `sharp`, `soft`, `round` | corner radius of cards, buttons and inputs: 0 to 2 px, 3 to 10 px, more than 10 px. Pill buttons count as `round`; fully round avatars and dots are not part of the shape |
 | Color budget | `one-accent`, `two-families`, `colorful` | hue families besides neutrals and status colors: one, two, three or more |
 | Imagery | `photo`, `illustration`, `type-only` | what the first viewport shows besides text: photographs, drawn images, nothing |
 
@@ -46,7 +46,7 @@ Motion is not an axis here. It comes from the brand profile (`motion`).
 - Do not set a stage the brand cannot fill. `photo` needs real photos of the brand's work; without them choose `type-only` or `illustration`.
 - Do not invent a position when the brand profile sets one under `style`. Take it, and deviate on a piece only with a reason written into the direction.
 - Do not change the position during styling. A different stage is a new direction and needs a new confirmation.
-- **Check:** `slop-lint --direction website-builder/direction/<page>.md` reports corner radii and font sizes outside the confirmed stage (`direction/shape`, `direction/type-contrast`). Density, color budget and imagery are measured on the render by the reviewer until `render-check` covers them.
+- **Check:** `slop-lint --direction website-builder/direction/<page>.md` reports corner radii and font sizes above the confirmed stage (`direction/shape`, `direction/type-contrast`). It reads literal values only: where the radius or the type scale comes from a framework variable, read the computed value on the render. Density, color budget and imagery are measured on the render in `site-verify`.
 
 For variants, begin from [starting-points.md](starting-points.md).
 

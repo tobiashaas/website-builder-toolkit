@@ -214,8 +214,8 @@ const RULES = [
     fix: 'Keep clamp() max at or below 2.5 × min (rem), so browser zoom can still reach 200 % text size (WCAG 1.4.4).',
     detect: [
       { scope: 'decl', check: (d) => {
-        if (d.prop !== 'font-size' && !FLUID_TYPE_TOKEN_RE.test(d.prop)) return null;
-        const r = clampRange(d.value);
+        const v = fontSizeValue(d);
+        const r = v === null ? null : clampRange(v);
         return r && r.max / r.min > 2.5
           ? { index: d.valueIndex, message: `Fluid font size: maximum is ${(r.max / r.min).toFixed(1)} times the minimum (limit 2.5).` } : null; } },
     ] },
@@ -224,7 +224,7 @@ const RULES = [
   { id: 'perf/lazy-high-priority', severity: 'error',
     message: 'Image with both loading="lazy" and fetchpriority="high".',
     fix: 'The largest image of the first viewport gets fetchpriority="high" and no lazy loading; images further down get loading="lazy" and no fetchpriority.',
-    detect: [{ scope: 'raw', re: /<img\b(?=[^>]*\bloading\s*=\s*\{?["']?lazy\b)(?=[^>]*\bfetchpriority\s*=\s*\{?["']?high\b)[^>]*>/i }] },
+    detect: [{ scope: 'markup', check: (f) => f.marks.imgLazyHigh }] },
 
   // ---------------- copy ----------------
   { id: 'copy/hype-word', severity: 'error',
@@ -343,7 +343,7 @@ const RULES = [
     fix: 'Use the radius of the confirmed shape (sharp: 0 to 2 px, soft: 3 to 10 px), or change the style position and have it confirmed again.',
     detect: [
       { scope: 'decl', check: (d, b, f, env) => {
-        if (!RADIUS_PROP_RE.test(d.prop)) return null;
+        if (!RADIUS_PROP_RE.test(d.prop) || RADIUS_FULL_TOKEN_RE.test(d.prop)) return null;
         const max = STYLE_LIMITS.shape[env.style.shape];
         const r = radiusPx(d.value);
         return r > max ? { index: d.valueIndex, message: `Corner radius ${fmtPx(r)} with shape "${env.style.shape}" (up to ${max} px).` } : null; } },
@@ -357,10 +357,10 @@ const RULES = [
         const max = STYLE_LIMITS.type_contrast[env.style.type_contrast];
         let body = 16, top = null;
         for (const b of f.blocks) for (const d of b.decls) {
-          if (d.prop !== 'font-size' && !FLUID_TYPE_TOKEN_RE.test(d.prop)) continue;
-          const px = fontSizePx(d.value);
+          const v = fontSizeValue(d);
+          const px = v === null ? null : fontSizePx(v);
           if (px === null) continue;
-          if (d.prop === 'font-size' && /^(?:\s*(?:html|body|:root)\s*,?)+$/.test(b.sel || '')) { body = px; continue; }
+          if (d.prop === 'font-size' && /^(?:html|body|:root)(?:\s*,\s*(?:html|body|:root))*$/.test((b.sel || '').trim())) { body = px; continue; }
           if (!top || px > top.px) top = { px, index: d.valueIndex };
         }
         return top && top.px / body > max
@@ -557,7 +557,9 @@ const STYLE_AXES = {
 };
 // Upper bounds the linter can check in CSS: corner radius in px, largest font size as a multiple of body size.
 const STYLE_LIMITS = { shape: { sharp: 2, soft: 10 }, type_contrast: { flat: 2, medium: 3.5 } };
-const RADIUS_PROP_RE = /^(?:border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius|--(?:[\w-]+-)?radius(?:-[\w-]+)?)$/;
+const RADIUS_PROP_RE = /^(?:(?:-webkit-)?border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius|--(?:[\w-]+-)?radius(?:-[\w-]+)?)$/;
+// Tokens that are meant to be fully round (avatars, dots) are not part of the shape.
+const RADIUS_FULL_TOKEN_RE = /^--.*(?:full|pill|round|circle)/;
 const fmtPx = (v) => `${Math.round(v * 10) / 10} px`;
 // Reads a style position; returns { style } or { error }. Empty values mean "not set".
 function parseStyle(raw) {
@@ -589,7 +591,20 @@ function fontSizePx(value) {
   return m ? parseFloat(m[1]) * (m[2].toLowerCase() === 'px' ? 1 : 16) : null;
 }
 // Custom properties that hold a font size: --text-xl, --font-size-h1, --fs-2, --h1.
-const FLUID_TYPE_TOKEN_RE = /^--(?:[\w-]+-)?(?:text|font-size|fs|h[1-6])(?:-[\w-]+)?$/;
+const TYPE_TOKEN_RE = /^--(?:[\w-]+-)?(?:text|font-size|fs|h[1-6])(?:-[\w-]+)?$/;
+// ...but not their neighbours: --text-width, --h1-margin, --hero-text-gap hold other things.
+const NOT_SIZE_TOKEN_RE = /(?:^|-)(?:margin|padding|gap|width|height|shadow|color|colour|weight|spacing|leading|lh|line|family|align|indent|decoration|transform|wrap|radius|opacity|offset|stroke|space|ratio|scale)(?:-|$)/;
+const isTypeToken = (prop) => TYPE_TOKEN_RE.test(prop) && !NOT_SIZE_TOKEN_RE.test(prop.slice(2));
+// The value that holds the font size of a declaration: the value itself, or the size part of a font shorthand. Null if the property is not about font size.
+function fontSizeValue(d) {
+  if (d.prop === 'font-size' || isTypeToken(d.prop)) return d.value;
+  if (d.prop !== 'font') return null;
+  for (const tok of splitTop(d.value, ' ')) {
+    const head = splitTop(tok, '/')[0];
+    if (/^clamp\(/i.test(head) || /^\d*\.?\d+(?:px|rem)$/i.test(head)) return head;
+  }
+  return null;
+}
 // Min and max of the first clamp() in a value, in px (rem and em counted as 16 px), or null.
 function clampRange(value) {
   const at = value.search(/\bclamp\(/i);
@@ -716,7 +731,7 @@ function yamlScalar(s) {
 function parseYaml(src) {
   const L = [];
   for (const raw of src.split(/\r?\n/)) {
-    const t = stripYamlComment(raw);
+    const t = stripYamlComment(raw.replace(/^\t+/, (m) => '  '.repeat(m.length)));
     if (t.trim()) L.push({ ind: t.match(/^ */)[0].length, s: t.trim() });
   }
   let i = 0;
@@ -818,7 +833,7 @@ function loadSetup(dataDir) {
 }
 
 function createFile(rel, raw, kind, ext) {
-  return { rel, raw, kind, ext, cssRanges: [], inline: [], classSegs: [], textSegs: [], marks: { imgNoAlt: [] }, htmlLang: null };
+  return { rel, raw, kind, ext, cssRanges: [], inline: [], classSegs: [], textSegs: [], marks: { imgNoAlt: [], imgLazyHigh: [] }, htmlLang: null };
 }
 function lineInfo(raw) {
   const starts = [0];
@@ -899,6 +914,10 @@ function processAttrs(f, name, attrs, base, tagIndex, jsx) {
     else if (key === 'placeholder' && a[4] === undefined) pushText(f, vStart, val, ['attr', 'placeholder']);
   }
   if (name === 'img' && !('alt' in found) && !/\{\s*\.\.\./.test(attrs)) f.marks.imgNoAlt.push(tagIndex);
+  if (name === 'img' || name === 'image') {
+    const attr = (k) => { const hit = Object.keys(found).find((x) => x.toLowerCase() === k); return hit ? String(found[hit] ?? '').replace(/[{}"'\s]/g, '').toLowerCase() : ''; };
+    if (attr('loading') === 'lazy' && attr('fetchpriority') === 'high') f.marks.imgLazyHigh.push(tagIndex);
+  }
   if (name === 'html' && found.lang) f.htmlLang = found.lang.toLowerCase().slice(0, 2);
   if (name === 'meta' && /description|og:title|og:description/i.test(found.name || found.property || '') && found.content) {
     const i = attrs.indexOf(found.content);
@@ -1290,7 +1309,7 @@ function walk(p, out, cfg) {
   }
 }
 function parseArgs(argv) {
-  const a = { paths: [], format: 'text', failOn: 'error', lang: null, adapters: null, brand: null, direction: null, config: null, listRules: false, mdCode: false };
+  const a = { paths: [], format: 'text', failOn: null, lang: null, adapters: null, brand: null, direction: null, config: null, listRules: false, mdCode: false };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const val = () => { const [k, v] = x.split('='); if (v !== undefined) return v; if (i + 1 >= argv.length) usage(`missing value for ${k}`); return argv[++i]; };
@@ -1359,7 +1378,7 @@ function main() {
   if (!['de', 'en', 'auto'].includes(lang)) usage(`unknown lang ${lang}`);
   const format = args.format;
   if (!['text', 'json'].includes(format)) usage(`unknown format ${format}`);
-  const failOn = args.failOn ?? fileCfg.failOn;
+  const failOn = args.failOn ?? fileCfg.failOn ?? 'error';
   if (!['error', 'warn', 'info', 'none'].includes(failOn)) usage(`invalid --fail-on ${failOn}`);
   let brandPath = args.brand ?? (fileCfg.brand ? path.resolve(cfgDir, fileCfg.brand) : null);
   if (!brandPath && dataDir && String(setup.brand || '').toLowerCase() !== 'none') {
@@ -1379,6 +1398,7 @@ function main() {
   const brandStyle = parseStyle(brand?.style), dirStyle = parseStyle(directionStyle);
   if (brandStyle.error) usage(`brand profile ${brandPath}: ${brandStyle.error}`);
   if (dirStyle.error) usage(`direction ${directionPath}: ${dirStyle.error}`);
+  if (directionPath && !Object.keys(dirStyle.style).length) usage(`direction ${directionPath}: no style position found (expected "style:" with at least one axis in the front matter)`);
   const style = { ...brandStyle.style, ...dirStyle.style };
   const cfg = {
     lang, adapters, brand, overrides, style,

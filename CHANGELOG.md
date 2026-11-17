@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `render-check --css-effect`, after a test on live sites and a review: compares every matched element (up to 300, then an even spread) instead of the first twelve, keeps several `<style>` blocks apart, judges nested rules, names the twin of a duplicated declaration, leaves rules untouched that the browser cannot restore exactly, runs after the screenshot, and recognises Automatic.css and reset files by name.
+- `render-check`: a document answering HTTP 400 or above is an error (a block page was measured, not the site); a JavaScript dialog no longer hangs the run.
+- `slop-lint`: `failOn` from the config file is honored; `perf/lazy-high-priority` reads parsed attributes (no match on `data-loading`); font-size rules read the `font` shorthand and skip tokens such as `--text-width`; a direction file without a style position is a usage error; tab-indented front matter is read.
+- `seo-check`, `inventory`: `max-image-preview:none` is no longer read as noindex.
+- Skills: `--direction` in the lint commands of `site-verify` and `site-audit`, a style-position block and a corrected review order in `site-verify`, the web platform rules also in `site-design` so builder projects see them, and two dead references fixed.
+
 - `render-check`: `--css-effect` with the check `css-no-effect`. It removes each declaration of the page's own stylesheets in the browser (framework and core are left out, `--css-only` narrows it) and reports the ones whose removal changes no computed style. `site-verify` runs it first in the review before handing over.
 
 - `site-direction`: style position on five measurable axes (density, type contrast, shape, color budget, imagery), a direction template with front matter, and four starting points for variants. The brand profile can set a site-wide position under `style`.

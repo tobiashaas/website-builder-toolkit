@@ -50,21 +50,24 @@ Per width, on a fresh tab:
 | `target-size` | warn | `a`, `button`, `input`, `select`, `textarea`, `[role=button]` smaller than 24 × 24 CSS px (WCAG 2.5.8); inline links inside running text are exempt |
 | `viewport-meta` | error | `user-scalable=no` or `maximum-scale` below 2; warn when the tag is missing |
 | `console` | warn | exceptions, `console.error`, error log entries, failed requests and HTTP 4xx/5xx responses |
-| `load` | error/warn | navigation failed, or no load event within 45 s |
+| `load` | error/warn | navigation failed, the document answered HTTP 400 or above (an error or block page was measured, often bot protection against headless Chrome), or no load event within 45 s |
 
 The same finding at several widths is reported once, at the first width, with the other widths in `alsoAt`.
 
 ### `css-no-effect` (with `--css-effect`)
 
-The check reads the stylesheets the rendered page really loads. It leaves out the ones nobody on the project edits: WordPress core (`/wp-includes/`, `/wp-admin/`, core inline styles), plugins (`/plugins/`), the compiled Automatic.css (`/automatic-css/`), the Bricks theme and `node_modules`. The report names what was checked and what was left out. `--css-only` overrides the choice.
+The check reads the stylesheets the rendered page really loads. It leaves out the ones nobody on the project edits: WordPress core (`/wp-includes/`, `/wp-admin/`, core inline styles), plugins (`/plugins/`), the compiled Automatic.css (`/automatic-css/`, or a file named like `acss-framework.css` in a static export), files named `reset` or `normalize`, the Bricks theme and `node_modules`. The report names what was checked and what was left out. `--css-only` overrides the choice.
 
-For every declaration in those stylesheets the check removes it, compares the computed style of the elements its rule matches (up to 12 per rule), and puts it back. A declaration is reported (warn) when its removal changed nothing at any tested width: another rule, the framework or the browser default already gives that value.
+For every declaration in those stylesheets the check removes it, compares the computed style of the elements its rule matches, and puts it back. A declaration is reported (warn) when its removal changed nothing at any tested width: another rule, the framework or the browser default already gives that value.
 
+- Every matched element is compared, up to 300 per rule; beyond that an even spread, and the finding says "300 sampled of N".
 - Shorthands are judged as one declaration, as the browser serializes them (`border: 1px solid …`, not seventeen longhands).
-- Two rules that set the same value are both reported, because each alone is redundant. Remove one and run again.
+- Two rules that set the same value are both reported, because each alone is redundant. Where the twin has the same selector, the finding names its stylesheet ("the same declaration is also in …"), framework included. Remove one and run again.
+- Nested rules are judged with their resolved selector (`:is(.card) .card__title`). Several `<style>` blocks without an id are numbered: `<style>`, `<style> (2)`.
 - Rules that match no element on this page are summed up in one manual finding. They may match other pages; run the check on each template before deleting.
-- Not judged: selectors with a state or pseudo-element (`:hover`, `:focus-visible`, `::before`), rules inside `@container`, `@scope` or nested rules, `transition` and `animation` properties, media queries that are false at every tested width, and stylesheets from another origin (listed in one manual finding).
-- Up to 4000 declarations are tested per width; the first 80 findings are listed. JSON output carries `cssEffect: { sheets, skipped, tested, noEffect, unmatched, unchecked }`.
+- Not judged, and counted in the report: selectors with a state or pseudo-element (`:hover`, `:focus-visible`, `::before`), rules inside `@container` or `@scope`, `transition`, `animation` and `border-image` properties, media queries that are false at every tested width, rules whose text does not survive a round trip through the browser (a shorthand with `var()` next to one of its longhands, the `all` shorthand), and stylesheets from another origin (one manual finding).
+- The check runs after the screenshot and leaves the stylesheets as they were; if a rule cannot be restored exactly, a manual finding says so.
+- Up to 4000 declarations are tested per width; the first 80 findings are listed. JSON output carries `cssEffect: { sheets, skipped, tested, noEffect, unmatched, unchecked, capped }`.
 - The list of left-out stylesheets is a guess from paths and ids. If a stylesheet of the project lands in `skipped`, or a vendor one is checked, name the right ones with `--css-only`.
 
 ## Output and exit codes

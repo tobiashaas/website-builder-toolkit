@@ -51,7 +51,7 @@ Brand values (colors, fonts, scale, radius, voice) come from the project's brand
 
 ## Copy
 
-No framework rules here; apply `site-copy`, the language file in `languages/`, and the brand voice. Markup-level rules:
+No framework rules here; apply `site-copy`, its language file (`de.md` or `en.md`), and the brand voice. Markup-level rules:
 
 - **Real headings in order** (`h1` once, no skipped levels), real `button` for actions and `a` for navigation.
 - **No placeholder copy shipped** (`Lorem ipsum`, `Feature one`, `Your headline here`), and no invented numbers, logos or testimonials.

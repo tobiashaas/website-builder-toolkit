@@ -22,7 +22,8 @@ State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes 
 - [ ] `render-check --direction`: measure density (section padding), color budget (hue families by area) and imagery in the first viewport against the style position.
 - [ ] `slop-lint`: `direction/shape` for Tailwind classes (`rounded-*`) and for values behind `var()`.
 - [ ] Script that renders a reference URL and prints its style position.
-- [ ] `render-check --css-effect`: judge state selectors (`:hover`, `:focus-visible`) by forcing the state through the DevTools protocol; read stylesheets from other origins; run over a list of URLs and report rules that match on none.
+- [ ] `render-check --css-effect`: judge state selectors (`:hover`, `:focus-visible`) by forcing the state through the DevTools protocol; read stylesheets from other origins; run over a list of URLs and report only what is redundant on all of them, and rules that match on none.
+- [ ] `contrast.mjs`: prints nothing and exits 0 when started through a symlinked skills folder; compare against the resolved script path.
 - [ ] `render-check`: layout checks beyond reflow: overlapping elements, clipped text, empty bands at wide viewports.
 
 - [ ] `slop-lint`: implement the lint hints listed in `site-etch` and `site-bricks` (deep div nesting, divs where containers belong, HTML inside code elements, `href="#"`).

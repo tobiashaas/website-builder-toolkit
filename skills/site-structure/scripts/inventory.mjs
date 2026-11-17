@@ -29,6 +29,16 @@ const URLS_PER_FINDING = 25;
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
+// True when a robots value carries the directive noindex or none. Directives are comma-separated and may be
+// prefixed with a crawler name ("googlebot: noindex"); "max-image-preview:none" is not a noindex.
+function hasNoindex(value) {
+  return String(value).toLowerCase().split(',').some((part) => {
+    const p = part.trim();
+    if (/^(?:max-image-preview|max-snippet|max-video-preview|unavailable_after)\s*:/.test(p)) return false;
+    const d = p.replace(/^[a-z0-9_-]+\s*:\s*/, '');
+    return d === 'noindex' || d === 'none';
+  });
+}
 function usage(msg) {
   if (msg) process.stderr.write(`inventory: ${msg}\n`);
   process.stderr.write(`usage: node inventory.mjs <site-url> [--sitemap <url>] [--max 500] [--concurrency 4]
@@ -485,7 +495,7 @@ async function crawl(args) {
     row.error = res.error;
     row.contentType = res.headers.get('content-type');
     row.xRobotsTag = res.headers.get('x-robots-tag');
-    if (row.xRobotsTag && /noindex|none/i.test(row.xRobotsTag)) row.noindex = true;
+    if (row.xRobotsTag && hasNoindex(row.xRobotsTag)) row.noindex = true;
     if (res.chain.length) {
       const fk = inScope(res.finalUrl) ? norm(res.finalUrl) : null;
       if (fk && fk !== row.url) {
@@ -506,7 +516,7 @@ async function crawl(args) {
       h1Count: p.h1Count, h1First: p.h1First, h2: p.h2, wordCount: p.wordCount, hreflang: p.hreflang,
       jsonLdTypes: p.jsonLdTypes, jsonLdErrors: p.jsonLdErrors, images: p.images, imagesWithoutAlt: p.imagesWithoutAlt,
     });
-    if (p.robots && /noindex|none/i.test(p.robots)) row.noindex = true;
+    if (p.robots && hasNoindex(p.robots)) row.noindex = true;
     if (p.canonical) row.canonicalSelf = norm(p.canonical) === row.url;
     const out = new Set();
     for (const l of p.links) {

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSS effect, edge cases</title>
+<style>
+  :root { --m: 24px; }
+  body { margin: 0; font-family: system-ui, sans-serif; color: #111; background: #fff; }
+  .twin { padding: 4px; }
+</style>
+<style>
+  body { color: #111; }
+  .twin { padding: 4px; }
+  .var { margin: var(--m); margin-top: 0; }
+  nav li { color: #333; }
+  li { color: #333; }
+  ul { list-style: none; padding: 0 16px; }
+  .card { padding: 12px; border: 1px solid #111;
+    & .card__title { font-weight: 700; display: block; }
+    .card__text { color: #111; margin: 8px 0 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1 style="margin:16px">CSS effect, edge cases</h1>
+  <p class="twin">Twin rule.</p>
+  <p class="var">Shorthand with a variable.</p>
+  <nav aria-label="Main"><ul>
+    <li>One</li><li>Two</li><li>Three</li><li>Four</li><li>Five</li><li>Six</li>
+    <li>Seven</li><li>Eight</li><li>Nine</li><li>Ten</li><li>Eleven</li><li>Twelve</li>
+  </ul></nav>
+  <ul><li>Outside the navigation</li></ul>
+  <div class="card"><span class="card__title">Card title</span><p class="card__text">Card text.</p></div>
+</main>
+</body>
+</html>

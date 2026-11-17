@@ -13,7 +13,7 @@ Finds problems; does not fix them. Fixing is `site-design` (design) and `site-co
 1. **Render at real size.** Screenshot what people will see, at the size they will see it: 390 and 1440 px wide at least, plus the social preview if it will be shared. Judge the image, not the code. For design-tool frames, export at real size (see `site-handoff`).
 2. **Lint.** From this skill's folder:
    ```
-   node scripts/slop-lint.mjs <paths> --brand <brand.md> --adapter acss|etch|bricks --lang de|en --format text
+   node scripts/slop-lint.mjs <paths> --brand <brand.md> --direction <direction.md> --adapter acss|etch|bricks --lang de|en --format text
    ```
    Leave out flags that don't apply. Rules and options: `scripts/README.md`.
 3. **Walk the tell list** in [slop-signs.md](slop-signs.md) on the rendered result. Lint is the floor; most visual tells need eyes.

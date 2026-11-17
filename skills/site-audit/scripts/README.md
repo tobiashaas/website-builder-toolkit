@@ -132,12 +132,12 @@ claims_never: ["100 % Verfügbarkeit"]
 
 ## Style position
 
-`--direction` reads `style:` from the front matter of a direction file (`site-direction` skill, `template.md`). A brand profile may carry the same block as a site-wide default; the direction file wins axis by axis. An unknown stage is a usage error (exit 2).
+`--direction` reads `style:` from the front matter of a direction file (`site-direction` skill, `template.md`). A brand profile may carry the same block as a site-wide default; the direction file wins axis by axis. An unknown stage, or a direction file without any axis under `style:`, is a usage error (exit 2).
 
 | Axis | Stages | Checked by |
 | --- | --- | --- |
-| `shape` | `sharp` \| `soft` \| `round` | `direction/shape`: literal corner radius above 2 px (`sharp`) or 10 px (`soft`) in `border-radius` and `--*radius*` properties; percentages, `var()` and `calc()` are skipped; `round` has no upper bound |
-| `type_contrast` | `flat` \| `medium` \| `strong` | `direction/type-contrast`: largest font size in a file above 2 times (`flat`) or 3.5 times (`medium`) body size; body size is the `html`, `body` or `:root` font size in that file, else 16 px; `clamp()` counts with its maximum |
+| `shape` | `sharp` \| `soft` \| `round` | `direction/shape`: literal corner radius above 2 px (`sharp`) or 10 px (`soft`) in `border-radius` and `--*radius*` properties; percentages, `var()`, `calc()` and tokens named full, pill, round or circle are skipped; `round` has no upper bound |
+| `type_contrast` | `flat` \| `medium` \| `strong` | `direction/type-contrast`: largest font size in a file (`font-size`, the size in a `font` shorthand, and size tokens such as `--text-xl` or `--h1`) above 2 times (`flat`) or 3.5 times (`medium`) body size; body size is the `html`, `body` or `:root` font size in that file, else 16 px; `clamp()` counts with its maximum |
 | `density`, `color_budget`, `imagery` | see `site-direction` | read and validated, not checked yet |
 
 ```yaml

@@ -151,6 +151,39 @@ const cssVendorOnly = await run([`${base}/clean.html`, '--widths', '390', '--css
 test('css-effect: summary is present on a page with its own stylesheet', () => assert(cssVendorOnly.json.cssEffect && cssVendorOnly.json.cssEffect.sheets.length >= 1, JSON.stringify(cssVendorOnly.json.cssEffect)));
 test('css-effect: off by default', () => none(prioOk, (f) => f.check === 'css-no-effect', 'ran without the flag'));
 
+// CSS effect, edge cases: anonymous style blocks, twin rules, var() shorthands, rules with many matches.
+const edge = await run([`${base}/css-edge.html`, '--widths', '390', '--css-effect', ...common]);
+const edgeCss = find(edge, (f) => f.check === 'css-no-effect');
+test('css-edge: two anonymous <style> blocks are kept apart', () => {
+  assert(edge.json.cssEffect.sheets.length === 2 && edge.json.cssEffect.sheets[1] === '<style> (2)', JSON.stringify(edge.json.cssEffect.sheets));
+  assert(edgeCss.some((f) => f.selector === '<style> (2) › body' && /^color:/.test(f.detail)), 'body color in the second block missing');
+});
+test('css-edge: twin rules are both reported and name each other', () => {
+  const twins = edgeCss.filter((f) => f.selector.endsWith('› .twin'));
+  assert(twins.length === 2 && twins.every((f) => /the same declaration is also in <style>/.test(f.detail)), JSON.stringify(twins));
+});
+test('css-edge: a rule that one of many matched elements depends on is not reported', () => {
+  assert(!edgeCss.some((f) => f.selector.endsWith('› li')), 'li flagged although the list outside nav needs it');
+  assert(edgeCss.some((f) => f.selector.endsWith('› nav li')), 'nav li (covered by li) missing');
+});
+test('css-edge: shorthand with var() next to its longhand is left untouched', () => {
+  assert(!edgeCss.some((f) => f.selector.endsWith('› .var')), 'var() rule judged');
+  assert(!edgeCss.some((f) => /could not be restored/.test(f.detail)), 'page altered by the probe');
+  assert(edge.json.cssEffect.unchecked >= 1, JSON.stringify(edge.json.cssEffect));
+});
+
+test('css-edge: nested rules are judged with their resolved selector', () => {
+  assert(edgeCss.some((f) => f.selector.endsWith('› :is(.card) .card__text') && /^color:/.test(f.detail)), `nested color missing: ${JSON.stringify(edgeCss.map((f) => [f.selector, f.detail.slice(0, 30)]))}`);
+  assert(!edgeCss.some((f) => /card__title/.test(f.selector)), 'nested declarations with an effect flagged');
+  assert(!edgeCss.some((f) => /card__text/.test(f.selector) && /^margin:/.test(f.detail)), 'nested margin flagged');
+});
+
+// A page that opens an alert must not hang; an error status of the document is an error.
+const dialog = await run([`${base}/dialog.html`, '--widths', '390', ...common]);
+test('dialog: alert is dismissed and reported, the run finishes', () => has(dialog, (f) => f.check === 'console' && f.selector === 'dialog' && /alert dialog dismissed/.test(f.detail), 'dialog note missing'));
+const gone = await run([`${base}/missing.html`, '--widths', '390', ...common]);
+test('status: a document answering 404 is an error', () => { has(gone, (f) => f.check === 'load' && f.severity === 'error' && /HTTP 404/.test(f.detail), 'status error missing'); assert(gone.status === 1, `status ${gone.status}`); });
+
 // Clean page inside a project with website-builder/: default report folder, screenshots, exit 0.
 // realpath: on macOS os.tmpdir() sits behind a symlink and the CLI reports the resolved path.
 const proj = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'render-check-test-')));
