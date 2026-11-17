@@ -3,10 +3,19 @@ name: site-seo
 description: "Make pages findable without hurting the brand or the reader: search data before copy, one main search term per page, titles, descriptions, headings, internal links, structured data (JSON-LD) that matches what is visible, local SEO with consistent name, address and phone, indexing (canonical, noindex, sitemap, hreflang) and visibility in AI search. Use when writing or reworking titles and meta descriptions, adding schema markup, planning local or location pages, checking why a page doesn't rank or get clicks, or before a relaunch goes live."
 license: CC-BY-4.0
 ---
-<!-- last-reviewed: 2026-11-09 -->
+<!-- last-reviewed: 2026-11-17 -->
 # SEO
 
 Composes with: `site-structure` (page types, one leading page per topic, inventory), `site-copy` (titles and descriptions are copy, in the brand's voice), `site-brand` (facts, locations, phone numbers), `site-verify` (before handing over). Reports go to `website-builder/reports/<date>-seo/` (create the folder if it is missing).
+
+## When it runs
+
+SEO runs at two moments, not one:
+
+1. **Before any copy:** step 1 (data), together with `site-structure`. Its result, the main term per page with its source, goes into `website-builder/structure.md`. `site-direction` and `site-copy` read it from there.
+2. **After copy and design:** steps 2 to 6 and the check, before `site-verify`.
+
+If a title, H1 or description already exists when step 1 runs, check it against the data and list what has to change; do not keep it because it is already written.
 
 ## Prohibitions
 

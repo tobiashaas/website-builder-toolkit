@@ -15,7 +15,8 @@ Copy comes from the brand profile's voice section. This file covers how to apply
 
 1. Read the profile's voice, approved lines, banned words, banned phrases, claims to avoid and the facts table.
 2. Read text the brand or the user wrote themselves (approved pages, their messages). Match vocabulary, sentence length and directness, not their typos.
-3. Collect the facts you will use. Every number, name and claim traces to the facts table or to the user. If something is missing, ask or leave a visible placeholder like `[FACT: number of locations]`. Never fill it in.
+3. For a page that should rank, take the main search term from `website-builder/structure.md`. If it is missing or marked `(assumed)`, run `site-seo` step 1 first or say that the headline rests on an assumption. Do not write a title or H1 before that.
+4. Collect the facts you will use. Every number, name and claim traces to the facts table or to the user. If something is missing, ask or leave a visible placeholder like `[FACT: number of locations]`. Never fill it in.
 
 ## Prohibitions
 

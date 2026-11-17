@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Order of SEO fixed: `site-seo` step 1 (search data) now runs with `site-structure`, before direction and copy; steps 2 to 6 and the check stay before `site-verify`. `site-wizard`, `site-seo`, `site-structure` and `site-copy` say so.
+
 - `render-check --css-effect`, after a test on live sites and a review: compares every matched element (up to 300, then an even spread) instead of the first twelve, keeps several `<style>` blocks apart, judges nested rules, names the twin of a duplicated declaration, leaves rules untouched that the browser cannot restore exactly, runs after the screenshot, and recognises Automatic.css and reset files by name.
 - `render-check`: a document answering HTTP 400 or above is an error (a block page was measured, not the site); a JavaScript dialog no longer hangs the run.
 - `slop-lint`: `failOn` from the config file is honored; `perf/lazy-high-priority` reads parsed attributes (no match on `data-loading`); font-size rules read the `font` shorthand and skip tokens such as `--text-width`; a direction file without a style position is a usage error; tab-indented front matter is read.
