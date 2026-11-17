@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSS effect</title>
+<style id="automatic-inline-css">
+  body { margin: 0; font-family: system-ui, sans-serif; color: #111; background: #fff; }
+  h1 { font-size: 2rem; margin: 16px; }
+  .box { margin: 16px; }
+  .framework-only { display: block; }
+</style>
+<style id="site">
+  h1 { font-size: 2rem; }
+  .box { display: block; color: #111; padding: 8px; border: 1px solid #111; transition: color 150ms ease-out; }
+  .box:hover { color: #333; }
+  .ghost { color: #555; }
+  @media (min-width: 1000px) {
+    .box { padding: 8px; }
+    .wide { max-width: 600px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>CSS effect</h1>
+  <div class="box wide">A box with text in it.</div>
+  <div class="framework-only">Text from the framework class.</div>
+</main>
+</body>
+</html>

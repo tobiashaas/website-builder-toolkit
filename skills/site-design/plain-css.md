@@ -19,6 +19,7 @@ Brand values (colors, fonts, scale, radius, voice) come from the project's brand
 
 - **No decorative layers without a job.** Remove background blobs, blurred gradient orbs, grid-dot patterns, glassmorphism panels and floating badges unless the brand profile names them.
 - **No CSS that restates defaults** (`display: block` on a `div`, `font-weight: 400` on body text, `margin: 0` already handled by your reset).
+  - Check: `render-check <url> --css-effect` (in `site-verify`) lists every declaration that changes nothing on the render.
 - **No duplicate components.** One card component with variants, not three cards with slightly different padding.
 - **No unused utilities or dead rules.** In Tailwind, a class list longer than about 12 utilities on one element is a component waiting to be extracted (`@apply` sparingly, or a framework component).
 

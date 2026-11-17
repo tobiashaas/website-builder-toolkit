@@ -120,6 +120,37 @@ test('priority: high-priority hero and lazy image below the fold pass', () => no
 const prioBad = find(bad, (f) => f.check === 'image-priority');
 test('priority: small images are not treated as the hero', () => assert(prioBad.length === 0, JSON.stringify(prioBad)));
 
+// CSS effect: declarations whose removal changes no computed style. Framework and core stylesheets are left out on their own.
+const css = await run([`${base}/css-effect.html`, '--widths', '390,1280', '--css-effect', ...common]);
+const noEffect = (prop, sel) => (f) => f.check === 'css-no-effect' && f.severity === 'warn' && f.selector.endsWith(`› ${sel}`) && f.detail.startsWith(`${prop}:`);
+test('css-effect: value the framework already sets is reported', () => has(css, noEffect('font-size', 'h1'), 'h1 font-size missing'));
+test('css-effect: browser default and inherited value are reported at both widths', () => {
+  has(css, (f) => noEffect('display', '.box')(f) && f.width === 390 && f.alsoAt.includes(1280), 'display: block missing');
+  has(css, noEffect('color', '.box'), 'inherited color missing');
+});
+test('css-effect: declaration that changes the render is not reported', () => {
+  none(css, (f) => f.check === 'css-no-effect' && /^border:/.test(f.detail), 'border flagged');
+  none(css, (f) => f.check === 'css-no-effect' && /^max-width:/.test(f.detail), 'max-width flagged');
+});
+test('css-effect: base padding has an effect at 390, the repeat in the media query has none', () => {
+  const pad = find(css, (f) => f.check === 'css-no-effect' && /^padding:/.test(f.detail));
+  assert(pad.length === 1 && pad[0].width === 1280 && pad[0].alsoAt.length === 0, JSON.stringify(pad));
+});
+test('css-effect: transition and :hover are not judged', () => none(css, (f) => f.check === 'css-no-effect' && (/^transition/.test(f.detail) || /:hover/.test(f.selector)), 'unchecked declaration flagged'));
+test('css-effect: unmatched rules are one manual note', () => has(css, (f) => f.check === 'css-no-effect' && f.severity === 'manual' && /^1 rule\(s\) match nothing/.test(f.detail) && /\.ghost/.test(f.detail), 'unmatched note missing'));
+test('css-effect: the framework stylesheet is left out and listed', () => {
+  none(css, (f) => f.check === 'css-no-effect' && /automatic/.test(f.selector), 'framework sheet checked');
+  assert(css.json.cssEffect.skipped.some((x) => /automatic-inline-css/.test(x)), JSON.stringify(css.json.cssEffect.skipped));
+});
+test('css-effect: summary in JSON, exit 0 (warnings only)', () => assert(css.status === 0 && css.json.cssEffect.noEffect === 4 && css.json.cssEffect.sheets.length === 1, `status ${css.status}, ${JSON.stringify(css.json.cssEffect)}`));
+const cssNone = await run([`${base}/css-effect.html`, '--widths', '390', '--css-only', 'nothing-like-this', ...common]);
+test('css-only: pattern without a match names the stylesheets on the page', () => has(cssNone, (f) => f.check === 'css-no-effect' && /no stylesheet matches/.test(f.detail) && /style#automatic-inline-css/.test(f.detail), 'no-match note missing'));
+const cssOnly = await run([`${base}/css-effect.html`, '--widths', '390', '--css-only', 'automatic', ...common]);
+test('css-only: a named stylesheet is checked even when it is a framework one', () => assert(cssOnly.json.cssEffect.sheets.length === 1 && /automatic/.test(cssOnly.json.cssEffect.sheets[0]) && cssOnly.json.cssEffect.tested > 0, JSON.stringify(cssOnly.json.cssEffect)));
+const cssVendorOnly = await run([`${base}/clean.html`, '--widths', '390', '--css-effect', ...common]);
+test('css-effect: summary is present on a page with its own stylesheet', () => assert(cssVendorOnly.json.cssEffect && cssVendorOnly.json.cssEffect.sheets.length >= 1, JSON.stringify(cssVendorOnly.json.cssEffect)));
+test('css-effect: off by default', () => none(prioOk, (f) => f.check === 'css-no-effect', 'ran without the flag'));
+
 // Clean page inside a project with website-builder/: default report folder, screenshots, exit 0.
 // realpath: on macOS os.tmpdir() sits behind a symlink and the CLI reports the resolved path.
 const proj = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'render-check-test-')));

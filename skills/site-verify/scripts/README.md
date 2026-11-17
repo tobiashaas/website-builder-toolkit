@@ -12,6 +12,7 @@ Renders a live URL in the locally installed Chrome at several widths and measure
 node scripts/render-check.mjs https://example.com/
 node scripts/render-check.mjs https://example.com/ --widths 390,1440 --reduced-motion
 node scripts/render-check.mjs https://example.com/ --format json --no-out
+node scripts/render-check.mjs https://example.com/ --widths 390,1280 --css-effect
 ```
 
 | Option | Values | Default | Effect |
@@ -24,6 +25,8 @@ node scripts/render-check.mjs https://example.com/ --format json --no-out
 | `--level` | `aa`, `aaa` | `aa` | contrast level: 4.5:1 and 3:1 (AA) or 7:1 and 4.5:1 (AAA) |
 | `--wait` | ms | `3000` | wait after the load event, before the page is scrolled through once and measured |
 | `--chrome <path>` | path | auto | browser binary; `CHROME_PATH` works too |
+| `--css-effect` | flag | off | also report declarations that change nothing (check `css-no-effect`), in every stylesheet of the page that is not framework or core |
+| `--css-only <pattern>` | text, comma-separated | | like `--css-effect`, but only for stylesheets whose URL or `<style#id>` contains the pattern; a named framework stylesheet is checked too |
 
 Without `--out`, files go to `website-builder/reports/<YYYY-MM-DD>-<slug>-render/` when a `website-builder/` folder exists in the current directory or a parent (same convention as the other scripts); otherwise nothing is written.
 
@@ -50,6 +53,19 @@ Per width, on a fresh tab:
 | `load` | error/warn | navigation failed, or no load event within 45 s |
 
 The same finding at several widths is reported once, at the first width, with the other widths in `alsoAt`.
+
+### `css-no-effect` (with `--css-effect`)
+
+The check reads the stylesheets the rendered page really loads. It leaves out the ones nobody on the project edits: WordPress core (`/wp-includes/`, `/wp-admin/`, core inline styles), plugins (`/plugins/`), the compiled Automatic.css (`/automatic-css/`), the Bricks theme and `node_modules`. The report names what was checked and what was left out. `--css-only` overrides the choice.
+
+For every declaration in those stylesheets the check removes it, compares the computed style of the elements its rule matches (up to 12 per rule), and puts it back. A declaration is reported (warn) when its removal changed nothing at any tested width: another rule, the framework or the browser default already gives that value.
+
+- Shorthands are judged as one declaration, as the browser serializes them (`border: 1px solid …`, not seventeen longhands).
+- Two rules that set the same value are both reported, because each alone is redundant. Remove one and run again.
+- Rules that match no element on this page are summed up in one manual finding. They may match other pages; run the check on each template before deleting.
+- Not judged: selectors with a state or pseudo-element (`:hover`, `:focus-visible`, `::before`), rules inside `@container`, `@scope` or nested rules, `transition` and `animation` properties, media queries that are false at every tested width, and stylesheets from another origin (listed in one manual finding).
+- Up to 4000 declarations are tested per width; the first 80 findings are listed. JSON output carries `cssEffect: { sheets, skipped, tested, noEffect, unmatched, unchecked }`.
+- The list of left-out stylesheets is a guess from paths and ids. If a stylesheet of the project lands in `skipped`, or a vendor one is checked, name the right ones with `--css-only`.
 
 ## Output and exit codes
 

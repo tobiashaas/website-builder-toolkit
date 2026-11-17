@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `render-check`: `--css-effect` with the check `css-no-effect`. It removes each declaration of the page's own stylesheets in the browser (framework and core are left out, `--css-only` narrows it) and reports the ones whose removal changes no computed style. `site-verify` runs it first in the review before handing over.
+
 - `site-direction`: style position on five measurable axes (density, type contrast, shape, color budget, imagery), a direction template with front matter, and four starting points for variants. The brand profile can set a site-wide position under `style`.
 - `slop-lint`: `--direction <file>` and two rules, `direction/shape` and `direction/type-contrast` (52 rules).
 

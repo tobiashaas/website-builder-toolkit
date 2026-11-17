@@ -4,7 +4,7 @@ description: "Check design and copy work before calling it done, with evidence i
 license: CC-BY-4.0
 ---
 
-<!-- last-reviewed: 2026-11-08 -->
+<!-- last-reviewed: 2026-11-17 -->
 # Verify
 
 Nothing is done because the agent thinks it looks right. Agents tend to report "done" as soon as their own checks pass, and errors compound across steps. A render, a lint run, a measurement or a person decides. Run the short check after every pass and the full check before handing over.
@@ -29,6 +29,11 @@ Re-read the prohibitions in `site-design` first, then run this as a separate rev
 ```
 node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]
 ```
+
+**CSS** (when CSS was written or changed)
+- [ ] `render-check <url> --css-effect` on every template: no declaration left that changes nothing. Remove one finding at a time and run again; two rules with the same value hide each other.
+- [ ] The report's `left out` line holds only framework and core stylesheets; otherwise name the project's with `--css-only`.
+- [ ] Rules that match nothing: checked against the other pages, then deleted or kept with a reason.
 
 **Lint**
 - [ ] `slop-lint` passes at `--fail-on error` with brand, adapter and language set.
@@ -56,6 +61,8 @@ node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]
 **Accessibility:** run `site-accessibility` (WCAG 2.2 AA, contrast matrix, axe scan, manual checks) before handing over.
 
 **Final audit** from `site-design`, then a score from a fresh reviewer (`site-polish`).
+
+Order of the review: CSS without effect first (it changes the stylesheet), then render and lint again, then accessibility, then the final audit and the score. A score given before the CSS cleanup is void.
 
 ## Optional
 
