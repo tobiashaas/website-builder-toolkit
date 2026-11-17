@@ -11,6 +11,8 @@ Brand values (colors, fonts, scale, radius, voice) come from the project's brand
 - **Restrict the Tailwind palette to the brand.** Replace or trim the default colors (v4: reset with `--color-*: initial;` inside `@theme`, then define your own; v3: set `theme.colors` rather than only extending it). If `bg-purple-500` still compiles in a project whose brand has no purple, the default palette is leaking.
 - **One spacing scale, one type scale, one radius, at most two shadows.** If the brand profile does not ask for more, do not add more.
 - **Fluid sizes with `clamp()` in the token,** not breakpoint overrides on every component.
+- **Fluid type: minimum and maximum in `rem`, maximum at most 2.5 times the minimum.** Viewport units don't grow with browser zoom, so a wider range stops text from reaching 200 % (WCAG 1.4.4).
+  - Fix: `clamp(2rem, 1.5rem + 2.5vw, 4rem)`, not `clamp(1rem, 5vw, 4rem)`. Lint: `css/fluid-type-range`.
 - **Dark mode is a token swap,** not a second set of classes on every element: redefine the role tokens under `prefers-color-scheme` or a `data-theme` attribute, or use `light-dark()`.
 
 ## Subtract
@@ -35,6 +37,8 @@ Brand values (colors, fonts, scale, radius, voice) come from the project's brand
 - **Neutrals carry the page.** Tint neutrals slightly toward the brand hue instead of default `gray-*` / `slate-*`.
 - **Contrast is computed.** Body text at least 4.5:1, large text and meaningful graphics at least 3:1. Light tints are backgrounds, not text colors on white.
 - **No pure `#000` text on pure `#fff`** for long reading; use the darkest neutral token.
+- **Borders, separators and states also work in forced colors.** Windows High Contrast removes `box-shadow` and gradient backgrounds. An input edge or a selected state carried only by a shadow or a background image disappears.
+  - Fix: a real `border` or `outline`, or one under `@media (forced-colors: active)` with a system color (`CanvasText`, `ButtonText`, `Highlight`).
 - **Opacity for color is a smell.** `text-white/60` on a photo or gradient has unpredictable contrast; use a defined muted token on a defined surface.
 
 ## Icons
@@ -58,7 +62,8 @@ No framework rules here; apply `site-copy`, the language file in `languages/`, a
 - **Type scale from tokens** (`text-*` mapped to your scale). No arbitrary `text-[17px]`.
 - **Line length 45 to 75 characters for body text** (`max-w-prose` or `max-inline-size: 65ch`).
 - **Variable fonts self-hosted,** one `@font-face` per family with a weight range, `font-display: swap`, preloaded only for the above-the-fold face. No Google Fonts CDN where privacy rules apply.
-- **`text-wrap: balance` on headings, `pretty` on paragraphs** where supported.
+- **`font-size-adjust: from-font` on text set in a web font,** so the fallback font takes the same x-height and the text does not jump when the web font arrives.
+- **`text-wrap: balance` on headings, `pretty` on paragraphs** where supported. Not on `*` (it costs layout time), and no `balance` on an element with a visible background or border: the box keeps its width and shows a gap at the end.
 
 ## Layout
 
@@ -76,6 +81,8 @@ No framework rules here; apply `site-copy`, the language file in `languages/`, a
 - **States for every interactive element:** hover, `focus-visible` (visible ring with sufficient contrast), active, disabled, loading. `outline-none` without a replacement focus style is a defect.
 - **Hit targets at least 44 by 44 px** for touch.
 - **Images have `width`/`height` or `aspect-ratio`,** `alt`, `loading="lazy"` below the fold, and `srcset`/`sizes`.
+- **The largest image of the first viewport gets `fetchpriority="high"` and no `loading="lazy"`.** At most two images per page carry `fetchpriority="high"`. Images that sit in the first viewport but start hidden (carousel slides, mega menu) get `fetchpriority="low"`. Images below the fold get `loading="lazy"` and no `fetchpriority`.
+  - Lint: `perf/lazy-high-priority`; on the rendered page `render-check` reports `image-priority`.
 
 ## Motion
 
@@ -116,4 +123,6 @@ Patterns `slop-lint` (in the `site-audit` skill) could flag in HTML, CSS and Tai
 - Hex literals in component CSS outside the token file; `@media (max-width`
 - `fonts.googleapis.com` / CDN font and script URLs
 - `<img` without `alt`, `width`/`height`; `<div onclick` instead of `<button>`
+- `<img` with `loading="lazy"` and `fetchpriority="high"` (implemented: `perf/lazy-high-priority`)
+- `clamp()` font sizes with a maximum above 2.5 times the minimum (implemented: `css/fluid-type-range`)
 - `Lorem ipsum`, `Feature one`, `John Doe`, `Acme` placeholder content

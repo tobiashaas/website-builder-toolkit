@@ -1,0 +1,5 @@
+:root {
+  --text-hero: clamp(2rem, 1.5rem + 2.5vw, 4rem);
+  --text-body: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+}
+h1 { font-size: var(--text-hero); }

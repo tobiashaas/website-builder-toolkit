@@ -209,6 +209,22 @@ const RULES = [
     message: 'Arbitrary pixel value in a utility class (e.g. p-[13px]).',
     fix: 'Use the spacing/type scale; add a token if the value is a real, repeated need.',
     detect: [{ scope: 'class', skipAdapters: ['tailwind'], re: /(?<![\w-])(?:[\w-]+:)*-?[a-z][\w-]*-\[-?\d*\.?\d+px\](?![\w-])/ }] },
+  { id: 'css/fluid-type-range', severity: 'warn',
+    message: 'Fluid font size whose maximum is more than 2.5 times its minimum.',
+    fix: 'Keep clamp() max at or below 2.5 × min (rem), so browser zoom can still reach 200 % text size (WCAG 1.4.4).',
+    detect: [
+      { scope: 'decl', check: (d) => {
+        if (d.prop !== 'font-size' && !FLUID_TYPE_TOKEN_RE.test(d.prop)) return null;
+        const r = clampRange(d.value);
+        return r && r.max / r.min > 2.5
+          ? { index: d.valueIndex, message: `Fluid font size: maximum is ${(r.max / r.min).toFixed(1)} times the minimum (limit 2.5).` } : null; } },
+    ] },
+
+  // ---------------- perf ----------------
+  { id: 'perf/lazy-high-priority', severity: 'error',
+    message: 'Image with both loading="lazy" and fetchpriority="high".',
+    fix: 'The largest image of the first viewport gets fetchpriority="high" and no lazy loading; images further down get loading="lazy" and no fetchpriority.',
+    detect: [{ scope: 'raw', re: /<img\b(?=[^>]*\bloading\s*=\s*\{?["']?lazy\b)(?=[^>]*\bfetchpriority\s*=\s*\{?["']?high\b)[^>]*>/i }] },
 
   // ---------------- copy ----------------
   { id: 'copy/hype-word', severity: 'error',
@@ -500,6 +516,24 @@ function hexToRgb(hex) {
   return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16), a: h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1 };
 }
 function num(v, scale = 1) { return v.endsWith('%') ? (parseFloat(v) / 100) * scale : parseFloat(v); }
+// Custom properties that hold a font size: --text-xl, --font-size-h1, --fs-2, --h1.
+const FLUID_TYPE_TOKEN_RE = /^--(?:[\w-]+-)?(?:text|font-size|fs|h[1-6])(?:-[\w-]+)?$/;
+// Min and max of the first clamp() in a value, in px (rem and em counted as 16 px), or null.
+function clampRange(value) {
+  const at = value.search(/\bclamp\(/i);
+  if (at < 0) return null;
+  let depth = 0, end = -1;
+  for (let i = value.indexOf('(', at); i < value.length; i++) {
+    if (value[i] === '(') depth++;
+    else if (value[i] === ')' && --depth === 0) { end = i; break; }
+  }
+  if (end < 0) return null;
+  const parts = splitTop(value.slice(value.indexOf('(', at) + 1, end), ',').map((x) => x.trim());
+  if (parts.length !== 3) return null;
+  const px = (v) => { const m = /^(\d*\.?\d+)(rem|em|px)$/i.exec(v); return m ? parseFloat(m[1]) * (m[2].toLowerCase() === 'px' ? 1 : 16) : null; };
+  const min = px(parts[0]), max = px(parts[2]);
+  return min && max ? { min, max } : null;
+}
 function hslFam(h, s, l) {
   if (s < 0.15 || l < 0.1 || l > 0.94) return 'neutral';
   if (h < 15 || h >= 345) return 'red';

@@ -42,6 +42,7 @@ Per width, on a fresh tab:
 | `animation` | warn | running animations with `animation-iteration-count: infinite`, with their names |
 | `reduced-motion` | error | with `--reduced-motion`: animations still infinite, or still moving (`transform`, `translate`, `rotate`, `scale`, offsets) |
 | `image-alt` | error | rendered `img` without an `alt` attribute |
+| `image-priority` | error, warn | the largest `img` in the first viewport (at least 15 % of it, a stand-in for the LCP image) has `loading="lazy"` (error) or no `fetchpriority="high"` (warn); more than two images with `fetchpriority="high"` (warn). CSS background images are not considered |
 | `accessible-name` | error | link or button without text, `aria-label`, `aria-labelledby`, `title` or an `img alt` inside |
 | `target-size` | warn | `a`, `button`, `input`, `select`, `textarea`, `[role=button]` smaller than 24 × 24 CSS px (WCAG 2.5.8); inline links inside running text are exempt |
 | `viewport-meta` | error | `user-scalable=no` or `maximum-scale` below 2; warn when the tag is missing |

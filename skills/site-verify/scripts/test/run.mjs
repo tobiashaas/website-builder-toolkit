@@ -110,8 +110,19 @@ test('motion --reduced-motion: guarded animation stops, unguarded is an error', 
   assert(motionRm.status === 1, `status ${motionRm.status}`);
 });
 
+// Image priority: lazy hero image, too many high-priority images, and the correct setup.
+const prio = await run([`${base}/priority.html`, '--widths', '390,1280', ...common]);
+test('priority: lazy-loaded largest image in the first viewport is an error', () => has(prio, (f) => f.check === 'image-priority' && f.severity === 'error' && /loading="lazy"/.test(f.detail), 'lazy hero missing'));
+test('priority: more than two fetchpriority="high" images is a warning', () => has(prio, (f) => f.check === 'image-priority' && f.severity === 'warn' && /^3 images/.test(f.detail), 'high count missing'));
+test('priority: exit 1', () => assert(prio.status === 1, `status ${prio.status}`));
+const prioOk = await run([`${base}/priority-ok.html`, '--widths', '390,1280', ...common]);
+test('priority: high-priority hero and lazy image below the fold pass', () => none(prioOk, (f) => f.check === 'image-priority', 'image-priority flagged'));
+const prioBad = find(bad, (f) => f.check === 'image-priority');
+test('priority: small images are not treated as the hero', () => assert(prioBad.length === 0, JSON.stringify(prioBad)));
+
 // Clean page inside a project with website-builder/: default report folder, screenshots, exit 0.
-const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'render-check-test-'));
+// realpath: on macOS os.tmpdir() sits behind a symlink and the CLI reports the resolved path.
+const proj = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'render-check-test-')));
 fs.mkdirSync(path.join(proj, 'website-builder'));
 const clean = await run([`${base}/clean.html`, '--widths', '390,1440', '--wait', '200']); // text format, default --out
 const outDir = path.join(proj, 'website-builder', 'reports', `${new Date().toISOString().slice(0, 10)}-127-0-0-1-clean-render`);

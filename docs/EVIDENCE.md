@@ -65,6 +65,18 @@ Labels combine, e.g. "peer-reviewed, abstract only".
 | Long or wide tables: zebra striping or row hover; sticky header, especially on mobile. | Ji/Perin/Nacenta 2024, IEEE TVCG (no link in notes): use zebra striping except for certain operations. Tensmeyer, Bylinski et al. 2023, ACM (no link in notes): line spacing, zebra striping and fixed headers for mobile web tables. | peer-reviewed; Scholar addition, only spot-checked | `site-design`, adapters |
 | Use the 39 cooperative-dashboard heuristics as an optional review list for dashboards. | Setlur et al. 2023, IEEE TVCG, [arXiv 2308.04514](https://arxiv.org/abs/2308.04514). | peer-reviewed | `site-verify` (link only) |
 
+### Web platform rules
+
+Checked 17.11.2026. These rules rest on browser behavior and vendor guidance, not on studies.
+
+| Rule for the toolkit | Evidence | Strength | Where it goes |
+| --- | --- | --- | --- |
+| The largest image of the first viewport gets `fetchpriority="high"` and no `loading="lazy"`; at most two high-priority images; hidden first-viewport images get `fetchpriority="low"`. | [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance) (Chrome, Edge, Firefox and MDN teams), guides `optimize-image-priority` and `performance`, read 17.11.2026. | open source check (vendor guidance; effect on load time not measured by us) | `site-design/plain-css.md`, `site-polish`, `slop-lint` (`perf/lazy-high-priority`), `render-check` (`image-priority`) |
+| Fluid type: `clamp()` maximum at most 2.5 times the minimum, both in `rem`. | Modern Web Guidance, guide `typography`, citing [WCAG 1.4.4 Resize Text](https://www.w3.org/WAI/WCAG22/Understanding/resize-text). The 2.5 factor follows from browser zoom reaching 500 %; not re-derived by us. | open source check | `site-design/plain-css.md`, `slop-lint` (`css/fluid-type-range`) |
+| `font-size-adjust: from-font` on text set in a web font. | Modern Web Guidance, guide `visually-stable-font-fallbacks`. Baseline since July 2024. | open source check (not measured by us) | `site-design/plain-css.md`, `site-polish` |
+| No `text-wrap: balance` on elements with a visible box, none on `*`. | Modern Web Guidance, guide `typography`. | open source check (not measured by us) | `site-design/plain-css.md`, `site-polish` |
+| Borders, separators and states do not rest on `box-shadow` or background images alone. | Modern Web Guidance, guide `color` (forced colors mode). Not tested by us in Windows High Contrast. | open source check (not re-run by us) | `site-design/plain-css.md` |
+
 ### Copy, tone and brand profile
 
 | Rule for the toolkit | Evidence | Strength | Where it goes |

@@ -24,7 +24,7 @@ Re-read the prohibitions in `site-design` first, then run this as a separate rev
 - [ ] Verified on the rendered frontend, not in the editor or builder canvas.
 - [ ] No console errors, failed requests, layout shift or flash of unstyled content.
 
-`render-check` renders the live URL in the local Chrome (Node 22+) at every width above and measures overflow (1.4.10), text contrast over the real background, gradient text, endless animations, alt text, accessible names, 24 px targets, zoom lock and console errors; screenshots and `report.md` go to `website-builder/reports/<date>-<slug>-render/`. Exit 1 means an error-level finding. Fix those and check every `manual` finding by hand. Details: `scripts/README.md`.
+`render-check` renders the live URL in the local Chrome (Node 22+) at every width above and measures overflow (1.4.10), text contrast over the real background, gradient text, endless animations, alt text, image priority (largest image of the first viewport), accessible names, 24 px targets, zoom lock and console errors; screenshots and `report.md` go to `website-builder/reports/<date>-<slug>-render/`. Exit 1 means an error-level finding. Fix those and check every `manual` finding by hand. Details: `scripts/README.md`.
 
 ```
 node scripts/render-check.mjs <url> [--reduced-motion] [--level aaa]

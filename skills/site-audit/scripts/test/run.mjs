@@ -70,7 +70,11 @@ const cases = [
     check: (r) => r.findings.every((x) => !x.file.startsWith('skip/')) && r.findings.find((x) => x.rule === 'css/transition-all').severity === 'error' },
   { name: '--fail-on warn', args: [fx('tells/components.css'), '--fail-on', 'warn'], status: 1 },
   { name: 'button period: only real buttons, never headings or wrappers', args: [fx('tells/buttons.html'), '--lang', 'de'], count: { 'copy/button-period': 3 } },
-  { name: 'clean fixtures: zero findings', args: [fx('clean')], status: 0, total: 0 },
+  { name: 'platform rules: fluid type range, lazy + high priority', args: [fx('tells/platform.html')], status: 1,
+    expect: ['css/fluid-type-range', 'perf/lazy-high-priority'],
+    count: { 'css/fluid-type-range': 2, 'perf/lazy-high-priority': 1 } },
+  { name: 'platform rules: fluid type within range, lazy image below the fold pass', args: [fx('clean/platform.css'), fx('clean/platform.html')], status: 0, total: 0 },
+  { name: 'clean fixtures: zero findings',args: [fx('clean')], status: 0, total: 0 },
   { name: 'clean fixtures with brand + adapters: zero errors', args: [fx('clean'), '--brand', brand, '--adapter', 'tailwind'], status: 0, errors: 0 },
   { name: 'clean German file with brand', args: [fx('clean/termine-de.md'), '--brand', brand], status: 0, total: 0 },
 ];

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Web platform rules in `site-design/plain-css.md` and `site-polish`: image priority for the largest image of the first viewport, fluid type range, `font-size-adjust`, limits of `text-wrap: balance`, forced colors. Sources in `docs/EVIDENCE.md`.
+- `slop-lint`: two new rules, `css/fluid-type-range` and `perf/lazy-high-priority` (50 rules).
+- `render-check`: new check `image-priority` (largest `img` of the first viewport lazy-loaded or without `fetchpriority="high"`; more than two high-priority images).
+- `render-check` tests: the report-folder test compared against an unresolved temp path and failed on macOS.
+
 ## 0.4.0 (2026-11-13)
 
 - New skill `site-styleguide`: styleguide for Automatic.css projects as a worksheet for the dashboard. Slop check before decisions are frozen, every value bound to a real token, contrast computed per surface, values without a slot listed, design file and dashboard kept in step.

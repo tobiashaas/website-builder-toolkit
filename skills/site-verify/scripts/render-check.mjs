@@ -225,7 +225,7 @@ function pageProbe(opts) {
   };
   const exposed = (el) => !el.closest('[aria-hidden="true"], [inert]');
   const sample = (t) => t.replace(/\s+/g, ' ').trim().slice(0, 50);
-  const out = { vw: docEl.clientWidth, sw: docEl.scrollWidth, title: document.title, overflow: [], gradient: [], animations: [], images: [], names: [], targets: [], text: [], viewport: null };
+  const out = { vw: docEl.clientWidth, sw: docEl.scrollWidth, title: document.title, overflow: [], gradient: [], animations: [], images: [], names: [], targets: [], text: [], viewport: null, hero: null, highPriority: 0 };
 
   // 1. Reflow: outermost elements past the right edge; skip fixed subtrees and descendants of x-clipping boxes.
   if (out.sw > out.vw) {
@@ -274,6 +274,22 @@ function pageProbe(opts) {
     const role = img.getAttribute('role');
     if (role === 'presentation' || role === 'none') continue;
     out.images.push({ selector: sel(img), src: (img.currentSrc || img.getAttribute('src') || '').slice(0, 120) });
+  }
+  // 4b. Image priority: the largest img in the first viewport stands in for the LCP image.
+  // Only <img> counts; CSS background images and text blocks are not considered.
+  const vpArea = innerWidth * innerHeight;
+  for (const img of document.querySelectorAll('img')) {
+    const prio = (img.getAttribute('fetchpriority') || '').toLowerCase();
+    if (prio === 'high') out.highPriority++;
+    if (!visible(img)) continue;
+    const r = img.getBoundingClientRect();
+    const left = r.left + window.scrollX, top = r.top + window.scrollY;
+    const w = Math.min(left + r.width, innerWidth) - Math.max(left, 0);
+    const h = Math.min(top + r.height, innerHeight) - Math.max(top, 0);
+    if (w <= 0 || h <= 0) continue;
+    const share = (w * h) / vpArea;
+    if (share < 0.15 || (out.hero && share <= out.hero.share)) continue;
+    out.hero = { selector: sel(img), share, lazy: (img.getAttribute('loading') || '').toLowerCase() === 'lazy', high: prio === 'high', src: (img.currentSrc || img.getAttribute('src') || '').slice(0, 120) };
   }
   const nameOf = (el) => {
     const lb = el.getAttribute('aria-labelledby');
@@ -506,6 +522,13 @@ async function checkWidth(cdp, url, width, args, outDir) {
     for (const i of p.images) add('image-alt', 'error', i.selector, `img without alt attribute (${i.src || 'no src'}); alt="" if decorative`);
     for (const n of p.names) add('accessible-name', 'error', n.selector, `${n.tag}${n.href ? ` href="${n.href}"` : ''} has no accessible name (text, aria-label, aria-labelledby, title or img alt)`);
 
+    // 4b. Image priority
+    if (p.hero) {
+      if (p.hero.lazy) add('image-priority', 'error', p.hero.selector, `largest image in the first viewport has loading="lazy" (${p.hero.src || 'no src'}); remove it and set fetchpriority="high", lazy loading delays the largest paint`);
+      else if (!p.hero.high) add('image-priority', 'warn', p.hero.selector, `largest image in the first viewport has no fetchpriority="high" (${p.hero.src || 'no src'}); set it so the browser fetches this image first`);
+    }
+    if (p.highPriority > 2) add('image-priority', 'warn', 'img[fetchpriority=high]', `${p.highPriority} images with fetchpriority="high"; keep it to one or two, more cancels the effect`);
+
     // 5. Target size
     for (const t of p.targets.slice(0, 40)) add('target-size', 'warn', t.selector, `${t.w} × ${t.h} px, below 24 × 24 (WCAG 2.5.8; check spacing exception)`);
     if (p.targets.length > 40) add('target-size', 'warn', '…', `${p.targets.length - 40} more small targets`);
@@ -540,7 +563,7 @@ async function checkWidth(cdp, url, width, args, outDir) {
 // ---------------------------------------------------------------------------
 // Reports
 // ---------------------------------------------------------------------------
-const ORDER = ['load', 'reflow', 'contrast', 'gradient-text', 'animation', 'reduced-motion', 'image-alt', 'accessible-name', 'target-size', 'viewport-meta', 'console'];
+const ORDER = ['load', 'reflow', 'contrast', 'gradient-text', 'animation', 'reduced-motion', 'image-alt', 'image-priority', 'accessible-name', 'target-size', 'viewport-meta', 'console'];
 const countBy = (fs_) => ({ error: fs_.filter((f) => f.severity === 'error').length, warn: fs_.filter((f) => f.severity === 'warn').length, manual: fs_.filter((f) => f.severity === 'manual').length });
 const summaryLine = (c, n) => `render-check: ${c.error} error(s), ${c.warn} warning(s), ${c.manual} manual check(s) at ${n} width(s)`;
 function grouped(findings, widths) {

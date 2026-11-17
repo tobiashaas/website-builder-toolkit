@@ -5,7 +5,7 @@ State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes 
 ## Next
 
 - [ ] **Privacy checks in `render-check`:** requests to third-party hosts before consent (fonts, scripts, video, maps), cookies set on first load, self-hosted fonts.
-- [ ] **Performance checks in `render-check`:** page weight, largest images vs. displayed size, missing `loading="lazy"` below the fold, Largest Contentful Paint and layout shift from the performance timeline.
+- [ ] **Performance checks in `render-check`:** page weight, largest images vs. displayed size, missing `loading="lazy"` below the fold, Largest Contentful Paint and layout shift from the performance timeline. Done so far: `image-priority`, which takes the largest `img` of the first viewport as a stand-in for the LCP element; replace it with the real LCP entry.
 - [ ] **Second field test:** full wizard run on an Etch site (mode "Full website"), to test `site-etch` with native elements and the flow from structure to verify.
 - [ ] **Test the skills.sh install** (`npx skills add tobiashaas/website-builder-toolkit`) and record the result in the README.
 

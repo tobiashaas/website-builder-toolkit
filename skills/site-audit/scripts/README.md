@@ -161,6 +161,8 @@ In Markdown and plain text, words in quotes or emphasis and lines that list seve
 | `css/important-overuse` | info | core | Many !important declarations in one file. | Fix specificity at the source (layers, lower-specificity selectors) instead of stacking !important. |
 | `css/px-sprawl` | info | core | Many distinct one-off pixel values in one file. | Map sizes to a spacing/type scale (tokens or rem steps) instead of hand-picked pixels. |
 | `css/arbitrary-px` | info | core | Arbitrary pixel value in a utility class (e.g. p-[13px]). | Use the spacing/type scale; add a token if the value is a real, repeated need. |
+| `css/fluid-type-range` | warn | core | Fluid font size whose maximum is more than 2.5 times its minimum. | Keep clamp() max at or below 2.5 × min (rem), so browser zoom can still reach 200 % text size (WCAG 1.4.4). |
+| `perf/lazy-high-priority` | error | core | Image with both loading="lazy" and fetchpriority="high". | The largest image of the first viewport gets fetchpriority="high" and no lazy loading; images further down get loading="lazy" and no fetchpriority. |
 | `copy/hype-word` | error | core | Hype word. | Say what the product does, concretely: the task, the number, the result. |
 | `copy/soft-hype-word` | warn | core | Inflated word that usually hides a missing specific. | Replace with the concrete claim (what changes, for whom, by how much) or delete. |
 | `copy/ai-phrase` | warn | core | Stock phrase typical of generated copy. | Start with the reader's situation or the concrete offer; cut the throat-clearing. |
