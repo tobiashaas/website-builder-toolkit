@@ -62,7 +62,7 @@ No framework rules here; apply `site-copy`, its language file (`de.md` or `en.md
 - **No `tracking-widest uppercase` eyebrows over every section.** One small label style at most, with modest tracking, used where it carries information.
 - **Type scale from tokens** (`text-*` mapped to your scale). No arbitrary `text-[17px]`.
 - **Line length 45 to 75 characters for body text** (`max-w-prose` or `max-inline-size: 65ch`).
-- **Variable fonts self-hosted,** one `@font-face` per family with a weight range, `font-display: swap`, preloaded only for the above-the-fold face. No Google Fonts CDN where privacy rules apply.
+- **Variable fonts self-hosted,** one `@font-face` per family with a weight range, `font-display: swap`, preloaded only for the above-the-fold face. No Google Fonts CDN where privacy rules apply (lint `privacy/google-fonts`).
 - **`font-size-adjust: from-font` on text set in a web font,** so the fallback font takes the same x-height and the text does not jump when the web font arrives.
 - **`text-wrap: balance` on headings, `pretty` on paragraphs** where supported. Not on `*` (it costs layout time), and no `balance` on an element with a visible background or border: the box keeps its width and shows a gap at the end.
 
@@ -90,13 +90,13 @@ No framework rules here; apply `site-copy`, its language file (`de.md` or `en.md
 - **No `transition-all`.** Name the properties (`transition-colors`, `transition-[transform,opacity]`).
 - **No `hover:scale-105` on cards and buttons** as the default hover. Prefer a color, border or shadow change that matches the brand's motion stance.
 - **No `animate-pulse` / `animate-bounce` / `animate-ping` as decoration.** `animate-pulse` is for loading skeletons only; bounce and ping almost never belong on a marketing page.
-- **Durations 150 to 300 ms for UI feedback,** ease-out for entering, never linear for UI.
+- **Durations and curves from `site-polish` (motion.md):** 100 to 150 ms for hover and press, up to 300 ms for dialogs and drawers; ease-out for entering, never linear for UI.
 - **`motion-safe:` / `motion-reduce:`** variants or a `prefers-reduced-motion` query on every animation.
 - Detail: `site-polish` (motion.md).
 
 ## Verify
 
-- **Render at real sizes:** 390, 768, 1280 and 1440 px widths, plus 200 percent zoom.
+- **Render at real sizes:** the widths set in `site-verify` (short set while working, full set before handing over), plus 200 percent zoom.
 - **Contrast checked by computation** for every text and surface pair used.
 - **Console clean, no 404s,** fonts loaded for every weight used (`document.fonts.check`).
 - **Purge check (Tailwind):** the production build contains only classes you use; no dynamically concatenated class names that the scanner cannot see.
@@ -122,7 +122,7 @@ Patterns `slop-lint` (in the `site-audit` skill) could flag in HTML, CSS and Tai
 - More than about 12 utilities on one element
 - `text-white/\d+` and `text-gray-400` on light backgrounds (likely contrast failures)
 - Hex literals in component CSS outside the token file; `@media (max-width`
-- `fonts.googleapis.com` / CDN font and script URLs
+- `fonts.googleapis.com` and `fonts.gstatic.com` (implemented: `privacy/google-fonts`); other CDN font and script URLs
 - `<img` without `alt`, `width`/`height`; `<div onclick` instead of `<button>`
 - `<img` with `loading="lazy"` and `fetchpriority="high"` (implemented: `perf/lazy-high-priority`)
 - `clamp()` font sizes with a maximum above 2.5 times the minimum (implemented: `css/fluid-type-range`)

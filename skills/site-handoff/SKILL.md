@@ -27,7 +27,7 @@ Composes with: `site-brand` (the profile), `site-direction` (confirmed before fr
 ## 2. Design in frames with the same discipline
 
 - Write and confirm the direction first (`site-direction`), then the skeleton as low-fidelity frames.
-- Run `site-design` on frames. The render is the frame exported at real size: 1440 and 390 px wide at least, plus the social preview size if relevant.
+- Run `site-design` on frames. The render is the frame exported at real size: the short set of widths from `site-verify` (390 and 1440 px) at least, plus the social preview size if relevant.
 - Run `site-audit` on the exported images. The lint script can't read design files; use the tool's MCP or plugin API to list values that are not bound to variables (detached colors, raw sizes) and treat each as a finding.
 
 ## 3. Handoff

@@ -18,7 +18,7 @@ node scripts/render-check.mjs https://example.com/ --direction website-builder/d
 
 | Option | Values | Default | Effect |
 | --- | --- | --- | --- |
-| `--widths` | comma-separated CSS px | `360,390,768,1024,1280,1440,1920` | viewport widths; below 768 the page is emulated as a phone (`mobile: true`, touch, height 844) |
+| `--widths` | comma-separated CSS px | `320,390,768,1024,1280,1440,1920` (320 px is the WCAG 1.4.10 reflow minimum) | viewport widths; below 768 the page is emulated as a phone (`mobile: true`, touch, height 844) |
 | `--format` | `text`, `json` | `text` | output format |
 | `--out <dir>` | path | see below | folder for `report.md` and `<width>.png` |
 | `--no-out` | flag | | write no files, even inside a project |

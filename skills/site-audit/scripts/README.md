@@ -176,7 +176,7 @@ In Markdown and plain text, words in quotes or emphasis and lines that list seve
 | `design/gradient-text` | error | core | Gradient text (background-clip: text over a gradient). | Use a solid text color from the palette; carry emphasis with size, weight or position. |
 | `design/ai-gradient` | warn | core | Purple/violet to blue/pink gradient, the default generated-UI look. | Use a flat surface or a gradient within one palette family; derive color from the brand profile. |
 | `design/glow-shadow` | warn | core | Colored glow shadow (saturated color with a large blur). | Use a neutral, low-alpha shadow for depth, or a border; never a neon glow. |
-| `design/hover-scale` | warn | core | Hover scale above 1.02 (cards and buttons that grow on hover). | Signal hover with color, border or a 1-2 px lift; keep scale at 1.02 or below. |
+| `design/hover-scale` | warn | core | Hover scale above 1.02 (cards and buttons that grow on hover). | Signal hover with a color, border or surface step. Do not grow or lift the element. |
 | `design/infinite-animation` | warn | core | Infinite or attention-seeking animation on a non-loading element. | Animate once on a state change, or only on loading indicators; respect prefers-reduced-motion. |
 | `design/heavy-weight` | warn | core | Font weight 800/900 (extrabold/black). | Use the weights defined in the brand profile; hierarchy usually needs size and spacing, not 900. |
 | `design/uppercase-tracking` | warn | core | Uppercase text with wide letter-spacing (the generated "eyebrow" label). | Use sentence case; if a label must be uppercase, keep tracking small and use it once per view. |
@@ -189,6 +189,7 @@ In Markdown and plain text, words in quotes or emphasis and lines that list seve
 | `css/arbitrary-px` | info | core | Arbitrary pixel value in a utility class (e.g. p-[13px]). | Use the spacing/type scale; add a token if the value is a real, repeated need. |
 | `css/fluid-type-range` | warn | core | Fluid font size whose maximum is more than 2.5 times its minimum. | Keep clamp() max at or below 2.5 × min (rem), so browser zoom can still reach 200 % text size (WCAG 1.4.4). |
 | `perf/lazy-high-priority` | error | core | Image with both loading="lazy" and fetchpriority="high". | The largest image of the first viewport gets fetchpriority="high" and no lazy loading; images further down get loading="lazy" and no fetchpriority. |
+| `privacy/google-fonts` | warn | core | Fonts loaded from Google servers (fonts.googleapis.com, fonts.gstatic.com). | Host the font files on the site itself (woff2, @font-face). The request sends the visitor's IP address to Google before any consent. |
 | `copy/hype-word` | error | core | Hype word. | Say what the product does, concretely: the task, the number, the result. |
 | `copy/soft-hype-word` | warn | core | Inflated word that usually hides a missing specific. | Replace with the concrete claim (what changes, for whom, by how much) or delete. |
 | `copy/ai-phrase` | warn | core | Stock phrase typical of generated copy. | Start with the reader's situation or the concrete offer; cut the throat-clearing. |

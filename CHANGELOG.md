@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `slop-lint`: new rule `privacy/google-fonts` for fonts loaded from Google servers (53 rules).
+- `contrast.mjs` no longer exits silently when started through a symlinked skills folder.
+
+- Render widths are set once, in `site-verify` (short set 390 and 1440 px, full set from 320 to 1920 px); the other skills point there. `render-check` now starts at 320 px by default instead of 360 px, the reflow minimum of WCAG 1.4.10.
+- `design/hover-scale`: the fix no longer suggests a lift, which the skills forbid. Motion durations in `plain-css.md` follow `motion.md`.
+
 - `render-check --direction <file>`: new check `style-position`. It measures all five axes of the style position on the render from computed values (corner radius, largest font size against body size, section padding, hue families, images in the first viewport), so it also works where a framework sets them through variables.
 
 - Order of SEO fixed: `site-seo` step 1 (search data) now runs with `site-structure`, before direction and copy; steps 2 to 6 and the check stay before `site-verify`. `site-wizard`, `site-seo`, `site-structure` and `site-copy` say so.

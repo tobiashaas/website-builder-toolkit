@@ -10,7 +10,7 @@ Finds problems; does not fix them. Fixing is `site-design` (design) and `site-co
 
 ## Steps
 
-1. **Render at real size.** Screenshot what people will see, at the size they will see it: 390 and 1440 px wide at least, plus the social preview if it will be shared. Judge the image, not the code. For design-tool frames, export at real size (see `site-handoff`).
+1. **Render at real size.** Screenshot what people will see, at the size they will see it: the short set of widths from `site-verify` (390 and 1440 px) at least, plus the social preview if it will be shared. Judge the image, not the code. For design-tool frames, export at real size (see `site-handoff`).
 2. **Lint.** From this skill's folder:
    ```
    node scripts/slop-lint.mjs <paths> --brand <brand.md> --direction <direction.md> --adapter acss|etch|bricks --lang de|en --format text

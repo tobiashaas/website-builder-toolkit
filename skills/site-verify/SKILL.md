@@ -9,9 +9,16 @@ license: CC-BY-4.0
 
 Nothing is done because the agent thinks it looks right. Agents tend to report "done" as soon as their own checks pass, and errors compound across steps. A render, a lint run, a measurement or a person decides. Run the short check after every pass and the full check before handing over.
 
+## Widths
+
+This is the one place that sets them; other skills point here.
+
+- **Short set**, while working and after every pass: 390 and 1440 px wide.
+- **Full set**, before handing over: 320, 390, 768, 1024, 1280, 1440 and 1920 px wide. 320 px is the reflow minimum of WCAG 1.4.10. It is the default of `render-check`.
+
 ## After every pass
 
-1. Re-render the changed area at real size.
+1. Re-render the changed area at the short set of widths.
 2. Run `node <site-audit>/scripts/slop-lint.mjs <changed paths> --brand <brand.md> [--direction <direction.md>] [--adapter …] [--lang …]`.
 3. Fix errors before starting the next pass.
 
@@ -20,7 +27,7 @@ Nothing is done because the agent thinks it looks right. Agents tend to report "
 Re-read the prohibitions in `site-design` first, then run this as a separate review, not as part of building.
 
 **Render**
-- [ ] Screenshots of every page and state at 360, 390, 768, 1024, 1280, 1440 and 1920 px wide, plus the social preview size if it will be shared.
+- [ ] Screenshots of every page and state at the full set of widths, plus the social preview size if it will be shared.
 - [ ] Verified on the rendered frontend, not in the editor or builder canvas.
 - [ ] No console errors, failed requests, layout shift or flash of unstyled content.
 

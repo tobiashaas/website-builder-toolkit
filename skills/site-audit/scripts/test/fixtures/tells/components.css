@@ -11,3 +11,5 @@
 .b { width: 11px; height: 13px; gap: 15px; inset: 17px; }
 .c { margin: 19px; padding: 21px; font-size: 23px; line-height: 25px; }
 .d { border-width: 27px; border-radius: 29px; }
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap");

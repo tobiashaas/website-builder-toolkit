@@ -98,7 +98,7 @@ const RULES = [
     ] },
   { id: 'design/hover-scale', severity: 'warn',
     message: 'Hover scale above 1.02 (cards and buttons that grow on hover).',
-    fix: 'Signal hover with color, border or a 1-2 px lift; keep scale at 1.02 or below.',
+    fix: 'Signal hover with a color, border or surface step. Do not grow or lift the element.',
     detect: [
       { scope: 'block', check: (b, f, env) => {
         if (!/:hover/.test(b.chain)) return null;
@@ -225,6 +225,15 @@ const RULES = [
     message: 'Image with both loading="lazy" and fetchpriority="high".',
     fix: 'The largest image of the first viewport gets fetchpriority="high" and no lazy loading; images further down get loading="lazy" and no fetchpriority.',
     detect: [{ scope: 'markup', check: (f) => f.marks.imgLazyHigh }] },
+
+  // ---------------- privacy ----------------
+  { id: 'privacy/google-fonts', severity: 'warn',
+    message: 'Fonts loaded from Google servers (fonts.googleapis.com, fonts.gstatic.com).',
+    fix: 'Host the font files on the site itself (woff2, @font-face). The request sends the visitor\'s IP address to Google before any consent.',
+    detect: [
+      { scope: 'raw', re: /\bfonts\.(?:googleapis|gstatic)\.com\b/i },
+      { scope: 'css', re: /\bfonts\.(?:googleapis|gstatic)\.com\b/i },
+    ] },
 
   // ---------------- copy ----------------
   { id: 'copy/hype-word', severity: 'error',

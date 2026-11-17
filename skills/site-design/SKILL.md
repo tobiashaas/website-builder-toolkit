@@ -94,7 +94,7 @@ Load `site-copy` and the language file. The short version:
 - **Dashboards:** the key figure is visually dominant (size, contrast), not just top-left. Show consequences, not raw counters ("3 devices out of contract in 14 days"). Standard charts (line, bar, heatmap). Overview first, detail on click. A short plain-language summary of what changed. Every chart leads to its table.
 - **Tables:** few columns, absolute values, precomputed comparisons (a delta column), numbers right-aligned, sticky header on long tables, row hover or zebra striping on wide ones, cards or fewer columns on phones.
 - **B2B service pages:** trust comes from named people, real references, certificates and locations, taken from the profile's facts only.
-- **Check:** screenshots at 360, 768, 1280 and 1920 px wide.
+- **Check:** screenshots at the short set of widths from `site-verify` (390 and 1440 px), plus 1920 px for dead bands.
 
 ## 7. Details
 

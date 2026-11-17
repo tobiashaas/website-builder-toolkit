@@ -7,7 +7,7 @@
 // alt text, accessible names, target size, zoom lock, console errors. Screenshots per width.
 // Node 22+ (global WebSocket), zero dependencies. Usage: scripts/README.md
 //
-//   node scripts/render-check.mjs <url> [--widths 360,390,768,1024,1280,1440,1920]
+//   node scripts/render-check.mjs <url> [--widths 320,390,768,1024,1280,1440,1920]
 //        [--format text|json] [--out <dir>|--no-out] [--reduced-motion] [--level aa|aaa]
 //        [--wait 3000] [--chrome <path>] [--css-effect] [--css-only <pattern>] [--direction <file>]
 
@@ -18,7 +18,7 @@ import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 
 const VERSION = '0.1.0';
-const DEFAULT_WIDTHS = [360, 390, 768, 1024, 1280, 1440, 1920];
+const DEFAULT_WIDTHS = [320, 390, 768, 1024, 1280, 1440, 1920]; // 320 px is the WCAG 1.4.10 reflow minimum
 const START_TIMEOUT = 30000;
 const LOAD_TIMEOUT = 45000;
 const CONTRAST_CAP = 300;
@@ -68,7 +68,7 @@ function readStyle(file) {
 // ---------------------------------------------------------------------------
 function usage(msg) {
   if (msg) process.stderr.write(`render-check: ${msg}\n`);
-  process.stderr.write(`usage: node render-check.mjs <url> [--widths 360,390,768,1024,1280,1440,1920]
+  process.stderr.write(`usage: node render-check.mjs <url> [--widths 320,390,768,1024,1280,1440,1920]
        [--format text|json] [--out <dir>|--no-out] [--reduced-motion] [--level aa|aaa]
        [--wait <ms>] [--chrome <path>] [--css-effect] [--css-only <pattern>] [--direction <file>]
 `);
