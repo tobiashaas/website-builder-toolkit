@@ -1,6 +1,6 @@
 # Roadmap and open work
 
-State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes follow `SCOPE.md`.
+State after 0.5.0 (2026-11-18). Items move to `CHANGELOG.md` when done. Changes follow `SCOPE.md`.
 
 ## Next
 

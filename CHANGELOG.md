@@ -1,34 +1,36 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 (2026-11-18)
 
-- `site-direction` starting points reworked: each names the material it needs instead of the industries it fits, a fifth one (People-led) uses `round` and `two-families`, and Story-led is `soft`. With a style position in the brand profile, starting points are not used and variants differ in concept, moment and layout.
+Skills
 
-- `slop-lint`: new rule `perf/google-fonts` for fonts loaded from Google servers instead of the site itself, a performance rule (53 rules).
-- `contrast.mjs` no longer exits silently when started through a symlinked skills folder.
+- `site-direction`: style position on five measurable axes (density, type contrast, shape, color budget, imagery), a direction template with front matter, and five starting points for variants, each chosen by the material the brand has. The brand profile can set a site-wide position under `style`.
+- `site-design`, `site-polish`: web platform rules: image priority for the largest image of the first viewport, fluid type range, `font-size-adjust`, limits of `text-wrap: balance`, forced colors. Sources in `docs/EVIDENCE.md`.
+- `site-verify`: render widths set in one place (short set 390 and 1440 px, full set from 320 to 1920 px), a CSS block, a style-position block and a corrected review order (final audit before the measurements).
+- Order of SEO fixed: `site-seo` step 1 (search data) runs with `site-structure`, before direction and copy; steps 2 to 6 and the check stay before `site-verify`.
+- `SCOPE.md`: legal and consent topics are out.
+- Motion durations in `plain-css.md` follow `motion.md`; two dead references fixed.
 
-- Render widths are set once, in `site-verify` (short set 390 and 1440 px, full set from 320 to 1920 px); the other skills point there. `render-check` now starts at 320 px by default instead of 360 px, the reflow minimum of WCAG 1.4.10.
-- `design/hover-scale`: the fix no longer suggests a lift, which the skills forbid. Motion durations in `plain-css.md` follow `motion.md`.
+`slop-lint` (53 rules)
 
-- `render-check --direction <file>`: new check `style-position`. It measures all five axes of the style position on the render from computed values (corner radius, largest font size against body size, section padding, hue families, images in the first viewport), so it also works where a framework sets them through variables.
+- New rules: `css/fluid-type-range`, `perf/lazy-high-priority`, `perf/google-fonts`, `direction/shape`, `direction/type-contrast`.
+- New option `--direction <file>`: reads the style position from a direction file; a file without one is a usage error.
+- `design/hover-scale`: the fix no longer suggests a lift, which the skills forbid.
+- Fixed: `failOn` from the config file was ignored; tab-indented front matter was not read.
 
-- Order of SEO fixed: `site-seo` step 1 (search data) now runs with `site-structure`, before direction and copy; steps 2 to 6 and the check stay before `site-verify`. `site-wizard`, `site-seo`, `site-structure` and `site-copy` say so.
+`render-check`
 
-- `render-check --css-effect`, after a test on live sites and a review: compares every matched element (up to 300, then an even spread) instead of the first twelve, keeps several `<style>` blocks apart, judges nested rules, names the twin of a duplicated declaration, leaves rules untouched that the browser cannot restore exactly, runs after the screenshot, and recognises Automatic.css and reset files by name.
-- `render-check`: a document answering HTTP 400 or above is an error (a block page was measured, not the site); a JavaScript dialog no longer hangs the run.
-- `slop-lint`: `failOn` from the config file is honored; `perf/lazy-high-priority` reads parsed attributes (no match on `data-loading`); font-size rules read the `font` shorthand and skip tokens such as `--text-width`; a direction file without a style position is a usage error; tab-indented front matter is read.
+- New check `image-priority`: largest `img` of the first viewport lazy-loaded or without `fetchpriority="high"`; more than two high-priority images.
+- New option `--css-effect` with the check `css-no-effect`: removes each declaration of the page's own stylesheets in the browser and reports the ones whose removal changes no computed style. Framework and core stylesheets are left out; `--css-only` narrows the choice.
+- New option `--direction <file>` with the check `style-position`: measures the style position on the render from computed values, so it also works where a framework sets radius and type through variables.
+- A document answering HTTP 400 or above is an error (a block page was measured, not the site). A JavaScript dialog no longer hangs the run.
+- Changed: the default widths start at 320 px instead of 360 px, the reflow minimum of WCAG 1.4.10.
+- Fixed in the tests: the report-folder test failed on macOS.
+
+Other scripts
+
 - `seo-check`, `inventory`: `max-image-preview:none` is no longer read as noindex.
-- Skills: `--direction` in the lint commands of `site-verify` and `site-audit`, a style-position block and a corrected review order in `site-verify`, the web platform rules also in `site-design` so builder projects see them, and two dead references fixed.
-
-- `render-check`: `--css-effect` with the check `css-no-effect`. It removes each declaration of the page's own stylesheets in the browser (framework and core are left out, `--css-only` narrows it) and reports the ones whose removal changes no computed style. `site-verify` runs it first in the review before handing over.
-
-- `site-direction`: style position on five measurable axes (density, type contrast, shape, color budget, imagery), a direction template with front matter, and starting points for variants. The brand profile can set a site-wide position under `style`.
-- `slop-lint`: `--direction <file>` and two rules, `direction/shape` and `direction/type-contrast` (52 rules).
-
-- Web platform rules in `site-design/plain-css.md` and `site-polish`: image priority for the largest image of the first viewport, fluid type range, `font-size-adjust`, limits of `text-wrap: balance`, forced colors. Sources in `docs/EVIDENCE.md`.
-- `slop-lint`: two new rules, `css/fluid-type-range` and `perf/lazy-high-priority` (50 rules).
-- `render-check`: new check `image-priority` (largest `img` of the first viewport lazy-loaded or without `fetchpriority="high"`; more than two high-priority images).
-- `render-check` tests: the report-folder test compared against an unresolved temp path and failed on macOS.
+- `contrast.mjs` no longer exits silently when started through a symlinked skills folder.
 
 ## 0.4.0 (2026-11-13)
 
