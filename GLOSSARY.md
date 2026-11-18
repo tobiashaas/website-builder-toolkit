@@ -39,7 +39,7 @@ Where a piece sits on five measurable axes: density, type contrast, shape, color
 _Avoid_: style, look, theme (they name a feeling, not a measurable stage)
 
 **Starting point**
-A named style position that variants begin from. Never the result: at least one axis moves for the brand.
+A named style position that variants begin from, chosen by the material the brand has, not by its industry. Never the result: at least one axis moves for the brand.
 
 **Concept**
 The one sentence in the direction every later choice is checked against. It must survive the next state and rule something out.

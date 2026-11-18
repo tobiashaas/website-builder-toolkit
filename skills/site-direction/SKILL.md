@@ -49,7 +49,7 @@ Motion is not an axis here. It comes from the brand profile (`motion`).
 - **Check on the render:** `render-check <url> --direction website-builder/direction/<page>.md` (in `site-verify`) measures all five axes from computed values and reports what lies outside the confirmed stage (`style-position`). This is the check that counts, also where radius and type scale come from framework variables.
 - **Check while writing CSS:** `slop-lint --direction website-builder/direction/<page>.md` reports literal corner radii and font sizes above the stage (`direction/shape`, `direction/type-contrast`).
 
-For variants, begin from [starting-points.md](starting-points.md).
+For variants, begin from [starting-points.md](starting-points.md), unless the brand profile already sets the position.
 
 ## Where it goes
 
@@ -61,7 +61,7 @@ Together with the direction, write the skeleton: sections in order, the componen
 
 ## Variants for important pieces
 
-For a homepage, a landing page or a campaign visual, render two or three genuinely different directions as rough drafts side by side at real size. Genuinely different means the style positions differ on at least two axes. Select with lint, the checks in `site-verify` and the human's choice, not by polishing the first draft through more prompting. For routine pieces one direction is enough.
+For a homepage, a landing page or a campaign visual, render two or three genuinely different directions as rough drafts side by side at real size. Genuinely different means the style positions differ on at least two axes. Where the brand profile fixes the position under `style`, the variants keep it and differ in concept, moment and layout instead. Select with lint, the checks in `site-verify` and the human's choice, not by polishing the first draft through more prompting. For routine pieces one direction is enough.
 
 ## When there is no brand profile
 

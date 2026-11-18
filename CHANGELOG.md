@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- `slop-lint`: new rule `privacy/google-fonts` for fonts loaded from Google servers (53 rules).
+- `site-direction` starting points reworked: each names the material it needs instead of the industries it fits, a fifth one (People-led) uses `round` and `two-families`, and Story-led is `soft`. With a style position in the brand profile, starting points are not used and variants differ in concept, moment and layout.
+
+- `slop-lint`: new rule `perf/google-fonts` for fonts loaded from Google servers instead of the site itself, a performance rule (53 rules).
 - `contrast.mjs` no longer exits silently when started through a symlinked skills folder.
 
 - Render widths are set once, in `site-verify` (short set 390 and 1440 px, full set from 320 to 1920 px); the other skills point there. `render-check` now starts at 320 px by default instead of 360 px, the reflow minimum of WCAG 1.4.10.
@@ -20,7 +22,7 @@
 
 - `render-check`: `--css-effect` with the check `css-no-effect`. It removes each declaration of the page's own stylesheets in the browser (framework and core are left out, `--css-only` narrows it) and reports the ones whose removal changes no computed style. `site-verify` runs it first in the review before handing over.
 
-- `site-direction`: style position on five measurable axes (density, type contrast, shape, color budget, imagery), a direction template with front matter, and four starting points for variants. The brand profile can set a site-wide position under `style`.
+- `site-direction`: style position on five measurable axes (density, type contrast, shape, color budget, imagery), a direction template with front matter, and starting points for variants. The brand profile can set a site-wide position under `style`.
 - `slop-lint`: `--direction <file>` and two rules, `direction/shape` and `direction/type-contrast` (52 rules).
 
 - Web platform rules in `site-design/plain-css.md` and `site-polish`: image priority for the largest image of the first viewport, fluid type range, `font-size-adjust`, limits of `text-wrap: balance`, forced colors. Sources in `docs/EVIDENCE.md`.

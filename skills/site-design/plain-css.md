@@ -62,7 +62,7 @@ No framework rules here; apply `site-copy`, its language file (`de.md` or `en.md
 - **No `tracking-widest uppercase` eyebrows over every section.** One small label style at most, with modest tracking, used where it carries information.
 - **Type scale from tokens** (`text-*` mapped to your scale). No arbitrary `text-[17px]`.
 - **Line length 45 to 75 characters for body text** (`max-w-prose` or `max-inline-size: 65ch`).
-- **Variable fonts self-hosted,** one `@font-face` per family with a weight range, `font-display: swap`, preloaded only for the above-the-fold face. No Google Fonts CDN where privacy rules apply (lint `privacy/google-fonts`).
+- **Variable fonts self-hosted,** one `@font-face` per family with a weight range, `font-display: swap`, preloaded only for the above-the-fold face. No fonts from Google's servers: they cost connections to two other hosts before text can render (lint `perf/google-fonts`).
 - **`font-size-adjust: from-font` on text set in a web font,** so the fallback font takes the same x-height and the text does not jump when the web font arrives.
 - **`text-wrap: balance` on headings, `pretty` on paragraphs** where supported. Not on `*` (it costs layout time), and no `balance` on an element with a visible background or border: the box keeps its width and shows a gap at the end.
 
@@ -122,7 +122,7 @@ Patterns `slop-lint` (in the `site-audit` skill) could flag in HTML, CSS and Tai
 - More than about 12 utilities on one element
 - `text-white/\d+` and `text-gray-400` on light backgrounds (likely contrast failures)
 - Hex literals in component CSS outside the token file; `@media (max-width`
-- `fonts.googleapis.com` and `fonts.gstatic.com` (implemented: `privacy/google-fonts`); other CDN font and script URLs
+- `fonts.googleapis.com` and `fonts.gstatic.com` (implemented: `perf/google-fonts`); other CDN font and script URLs
 - `<img` without `alt`, `width`/`height`; `<div onclick` instead of `<button>`
 - `<img` with `loading="lazy"` and `fetchpriority="high"` (implemented: `perf/lazy-high-priority`)
 - `clamp()` font sizes with a maximum above 2.5 times the minimum (implemented: `css/fluid-type-range`)
