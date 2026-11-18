@@ -25,7 +25,7 @@ Brand values (colors, fonts, scale ratios, radius, voice) come from the project'
 ## Subtract
 
 - **No CSS that changes nothing.** ACSS already sets heading sizes, font families, weights, line-heights, link styles, button styles, section padding, container width and most margins. Do not restate them (`h1 { font-size: var(--h1) }`, `margin: 0` on elements that already have it, `color: var(--text-light)` inside a `bg--dark` section).
-  - Fix: measure the computed default in the browser first; write only declarations that differ from it.
+  - Fix: measure the computed default in the browser first; write only declarations that differ from it. After the work, `render-check <url> --css-effect` (in `site-verify`) lists every declaration that changes nothing.
 - **No duplicated components.** Before creating a class, search for an existing one with the same role (eyebrow, lede, card, button row). One role, one class; variants as modifiers.
 - **Only enable the palette colors and button styles the design uses.** Unused secondary/tertiary/accent families and their button variants add CSS and confuse later agents.
 

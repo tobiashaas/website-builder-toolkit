@@ -1,11 +1,12 @@
 # Roadmap and open work
 
-State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes follow `SCOPE.md`.
+State after 0.5.0 (2026-11-18). Items move to `CHANGELOG.md` when done. Changes follow `SCOPE.md`.
 
 ## Next
 
 - [ ] **Privacy checks in `render-check`:** requests to third-party hosts before consent (fonts, scripts, video, maps), cookies set on first load, self-hosted fonts.
-- [ ] **Performance checks in `render-check`:** page weight, largest images vs. displayed size, missing `loading="lazy"` below the fold, Largest Contentful Paint and layout shift from the performance timeline.
+- [ ] **Performance checks in `render-check`:** page weight, largest images vs. displayed size, missing `loading="lazy"` below the fold, Largest Contentful Paint and layout shift from the performance timeline. Done so far: `image-priority`, which takes the largest `img` of the first viewport as a stand-in for the LCP element; replace it with the real LCP entry.
+- [ ] **Field-test the style position:** one real page with two variants from different starting points; adjust the stage thresholds from what the reviewer measures.
 - [ ] **Second field test:** full wizard run on an Etch site (mode "Full website"), to test `site-etch` with native elements and the flow from structure to verify.
 - [ ] **Test the skills.sh install** (`npx skills add tobiashaas/website-builder-toolkit`) and record the result in the README.
 
@@ -17,6 +18,12 @@ State after 0.3.0 (2026-11-10). Items move to `CHANGELOG.md` when done. Changes 
 - [ ] GitHub Actions: run all script test suites on push (Node 18, 20, 22; Chrome for `render-check`).
 
 ## Scripts
+
+- [ ] `render-check --direction`: tell status colors from brand colors (read the brand profile's palette); weigh hue families by area; tell photos from illustrations.
+- [ ] `slop-lint`: `direction/shape` for Tailwind classes (`rounded-*`) and for values behind `var()`.
+- [ ] Script that renders a reference URL and prints its style position.
+- [ ] `render-check --css-effect`: judge state selectors (`:hover`, `:focus-visible`) by forcing the state through the DevTools protocol; read stylesheets from other origins; run over a list of URLs and report only what is redundant on all of them, and rules that match on none.
+- [ ] `render-check`: layout checks beyond reflow: overlapping elements, clipped text, empty bands at wide viewports.
 
 - [ ] `slop-lint`: implement the lint hints listed in `site-etch` and `site-bricks` (deep div nesting, divs where containers belong, HTML inside code elements, `href="#"`).
 - [ ] `slop-lint`: resolve `var(--…)` tokens when a token file is given; read JSX `style={{…}}` objects; check focus styles across files.

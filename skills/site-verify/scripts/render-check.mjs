@@ -7,9 +7,9 @@
 // alt text, accessible names, target size, zoom lock, console errors. Screenshots per width.
 // Node 22+ (global WebSocket), zero dependencies. Usage: scripts/README.md
 //
-//   node scripts/render-check.mjs <url> [--widths 360,390,768,1024,1280,1440,1920]
+//   node scripts/render-check.mjs <url> [--widths 320,390,768,1024,1280,1440,1920]
 //        [--format text|json] [--out <dir>|--no-out] [--reduced-motion] [--level aa|aaa]
-//        [--wait 3000] [--chrome <path>]
+//        [--wait 3000] [--chrome <path>] [--css-effect] [--css-only <pattern>] [--direction <file>]
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -18,26 +18,65 @@ import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 
 const VERSION = '0.1.0';
-const DEFAULT_WIDTHS = [360, 390, 768, 1024, 1280, 1440, 1920];
+const DEFAULT_WIDTHS = [320, 390, 768, 1024, 1280, 1440, 1920]; // 320 px is the WCAG 1.4.10 reflow minimum
 const START_TIMEOUT = 30000;
 const LOAD_TIMEOUT = 45000;
 const CONTRAST_CAP = 300;
 const SHOT_MAX_HEIGHT = 16000;
+const CSS_EFFECT_CAP = 4000; // declarations tested per width
+const CSS_EFFECT_LIST = 80; // findings listed before the rest is summed up
+const CSS_EFFECT_SAMPLE = 300; // matched elements compared per rule; more are sampled evenly
+// Stylesheets nobody on the project edits: WordPress core, plugins, the compiled Automatic.css (also by file name,
+// as in static exports), reset and normalize files, the Bricks theme, packages.
+// Left out of --css-effect unless --css-only names them.
+const CSS_VENDOR = String.raw`/wp-includes/|/wp-admin/|/plugins/|/automatic-css/|/themes/bricks/|/node_modules/|/[^/?]*(?:automatic|acss|reset|normalize)[^/?]*\.css|<style#(?:global-styles|wp-block-library|classic-theme-styles|core-block-supports|wp-emoji|automatic)`;
+
+// Style position (site-direction): one stage per axis, with the range each stage allows on the render.
+// The same axes and stages as in slop-lint; that script reads literal CSS, this one measures computed values.
+const STYLE_AXES = {
+  density: { airy: [96, Infinity], regular: [56, 95.99], dense: [0, 55.99] }, // median vertical section padding in px
+  type_contrast: { flat: [0, 2], medium: [2.01, 3.5], strong: [3.51, Infinity] }, // largest font size divided by body size
+  shape: { sharp: [0, 2], soft: [3, 10], round: [10.01, Infinity] }, // corner radius in px
+  color_budget: { 'one-accent': 1, 'two-families': 2, colorful: Infinity }, // hue families besides neutrals
+  imagery: { photo: true, illustration: true, 'type-only': false }, // is there an image in the first viewport
+};
+const STYLE_LIST = 12; // findings listed per axis before the rest is summed up
+
+// Reads the style: block from the front matter of a direction file or brand profile. Returns {} when there is none.
+function readStyle(file) {
+  const src = fs.readFileSync(file, 'utf8');
+  const fm = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(src);
+  const style = {};
+  if (!fm) return style;
+  let inside = false;
+  for (const raw of fm[1].split(/\r?\n/)) {
+    if (/^style\s*:\s*(#.*)?$/.test(raw)) { inside = true; continue; }
+    if (!inside) continue;
+    if (/^\S/.test(raw)) break;
+    const m = /^\s+([\w-]+)\s*:\s*["']?([\w-]*)["']?\s*(?:#.*)?$/.exec(raw);
+    if (!m || !m[2]) continue;
+    const axis = m[1].replace('-', '_'), stage = m[2].toLowerCase();
+    if (!STYLE_AXES[axis]) continue;
+    if (!(stage in STYLE_AXES[axis])) throw new Error(`style.${axis}: "${m[2]}" is not one of ${Object.keys(STYLE_AXES[axis]).join(', ')}`);
+    style[axis] = stage;
+  }
+  return style;
+}
 
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 function usage(msg) {
   if (msg) process.stderr.write(`render-check: ${msg}\n`);
-  process.stderr.write(`usage: node render-check.mjs <url> [--widths 360,390,768,1024,1280,1440,1920]
+  process.stderr.write(`usage: node render-check.mjs <url> [--widths 320,390,768,1024,1280,1440,1920]
        [--format text|json] [--out <dir>|--no-out] [--reduced-motion] [--level aa|aaa]
-       [--wait <ms>] [--chrome <path>]
+       [--wait <ms>] [--chrome <path>] [--css-effect] [--css-only <pattern>] [--direction <file>]
 `);
   process.exit(2);
 }
 
 function parseArgs(argv) {
-  const a = { widths: DEFAULT_WIDTHS, format: 'text', out: undefined, reducedMotion: false, level: 'aa', wait: 3000, chrome: null, url: null };
+  const a = { widths: DEFAULT_WIDTHS, format: 'text', out: undefined, reducedMotion: false, level: 'aa', wait: 3000, chrome: null, url: null, cssEffect: null, direction: null };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined) usage(`${t} needs a value`); return v; };
@@ -51,6 +90,9 @@ function parseArgs(argv) {
     else if (t === '--level') { a.level = val().toLowerCase(); if (!['aa', 'aaa'].includes(a.level)) usage('--level is aa or aaa'); }
     else if (t === '--wait') { a.wait = Number(val()); if (!Number.isFinite(a.wait) || a.wait < 0) usage('--wait takes milliseconds'); }
     else if (t === '--chrome') a.chrome = val();
+    else if (t === '--direction') a.direction = val();
+    else if (t === '--css-effect') a.cssEffect = a.cssEffect || [];
+    else if (t === '--css-only') a.cssEffect = val().split(',').map((x) => x.trim()).filter(Boolean);
     else if (t === '-h' || t === '--help') usage();
     else if (t.startsWith('--')) usage(`unknown option ${t}`);
     else if (!a.url) a.url = t;
@@ -225,7 +267,7 @@ function pageProbe(opts) {
   };
   const exposed = (el) => !el.closest('[aria-hidden="true"], [inert]');
   const sample = (t) => t.replace(/\s+/g, ' ').trim().slice(0, 50);
-  const out = { vw: docEl.clientWidth, sw: docEl.scrollWidth, title: document.title, overflow: [], gradient: [], animations: [], images: [], names: [], targets: [], text: [], viewport: null };
+  const out = { vw: docEl.clientWidth, sw: docEl.scrollWidth, title: document.title, overflow: [], gradient: [], animations: [], images: [], names: [], targets: [], text: [], viewport: null, hero: null, highPriority: 0, style: null };
 
   // 1. Reflow: outermost elements past the right edge; skip fixed subtrees and descendants of x-clipping boxes.
   if (out.sw > out.vw) {
@@ -275,6 +317,22 @@ function pageProbe(opts) {
     if (role === 'presentation' || role === 'none') continue;
     out.images.push({ selector: sel(img), src: (img.currentSrc || img.getAttribute('src') || '').slice(0, 120) });
   }
+  // 4b. Image priority: the largest img in the first viewport stands in for the LCP image.
+  // Only <img> counts; CSS background images and text blocks are not considered.
+  const vpArea = innerWidth * innerHeight;
+  for (const img of document.querySelectorAll('img')) {
+    const prio = (img.getAttribute('fetchpriority') || '').toLowerCase();
+    if (prio === 'high') out.highPriority++;
+    if (!visible(img)) continue;
+    const r = img.getBoundingClientRect();
+    const left = r.left + window.scrollX, top = r.top + window.scrollY;
+    const w = Math.min(left + r.width, innerWidth) - Math.max(left, 0);
+    const h = Math.min(top + r.height, innerHeight) - Math.max(top, 0);
+    if (w <= 0 || h <= 0) continue;
+    const share = (w * h) / vpArea;
+    if (share < 0.15 || (out.hero && share <= out.hero.share)) continue;
+    out.hero = { selector: sel(img), share, lazy: (img.getAttribute('loading') || '').toLowerCase() === 'lazy', high: prio === 'high', src: (img.currentSrc || img.getAttribute('src') || '').slice(0, 120) };
+  }
   const nameOf = (el) => {
     const lb = el.getAttribute('aria-labelledby');
     if (lb) { const t = lb.split(/\s+/).map((id) => document.getElementById(id)?.textContent || '').join(' ').trim(); if (t) return t; }
@@ -308,6 +366,77 @@ function pageProbe(opts) {
       if (block && (block.innerText || '').trim().length > own + 1) continue;
     }
     out.targets.push({ selector: sel(el), w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 });
+  }
+
+  // 7. Style position (with --direction): what the page really renders on each axis.
+  if (opts.style) {
+    const num = (v) => parseFloat(v) || 0;
+    const st = { body: num(getComputedStyle(document.body).fontSize) || 16, top: null, sections: [], controls: [], boxes: [], colors: [], images: [] };
+    const hsl = (c) => {
+      const r = c.r / 255, g = c.g / 255, b = c.b / 255, max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+      if (max === min) return { h: 0, s: 0, l };
+      const d = max - min, s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      const h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return { h: h * 60, s, l };
+    };
+    const seenColor = new Set();
+    const addColor = (str, kind, el) => {
+      const c = rgba(str);
+      if (c.a < 0.5) return;
+      const v = hsl(c);
+      if (v.s < 0.25 || v.l < 0.12 || v.l > 0.9) return; // neutrals, near black, light tints
+      const key = `${kind}|${c.r},${c.g},${c.b}`;
+      if (seenColor.has(key)) return;
+      seenColor.add(key);
+      st.colors.push({ h: Math.round(v.h), kind, selector: sel(el), color: '#' + [c.r, c.g, c.b].map((x) => x.toString(16).padStart(2, '0')).join('') });
+    };
+    const CONTROL = 'button, [role="button"], input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), select, textarea, a[class*="btn"], a[class*="button"]';
+    const share = (r) => {
+      const left = r.left + window.scrollX, top = r.top + window.scrollY;
+      const w = Math.min(left + r.width, innerWidth) - Math.max(left, 0), h = Math.min(top + r.height, innerHeight) - Math.max(top, 0);
+      return w > 0 && h > 0 ? (w * h) / (innerWidth * innerHeight) : 0;
+    };
+    const seenBox = new Set();
+    let count = 0;
+    for (const el of document.body.querySelectorAll('*')) {
+      if (++count > 8000) break;
+      const tag = el.tagName.toLowerCase();
+      if (el.closest('svg') && tag !== 'svg') continue;
+      if (!visible(el)) continue;
+      const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+      if ([...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) {
+        const fs = num(cs.fontSize);
+        if (!st.top || fs > st.top.px) st.top = { px: fs, selector: sel(el), text: sample(el.textContent) };
+        addColor(cs.color, 'text', el);
+      }
+      const bg = rgba(cs.backgroundColor);
+      const edged = num(cs.borderTopWidth) > 0 && rgba(cs.borderTopColor).a > 0;
+      const control = el.matches(CONTROL);
+      if ((bg.a > 0 || edged || cs.boxShadow !== 'none' || control) && r.width >= 24 && r.height >= 16) {
+        const v = cs.borderTopLeftRadius.split(' ')[0];
+        const half = Math.min(r.width, r.height) / 2;
+        const radius = Math.min(v.endsWith('%') ? (Math.min(r.width, r.height) * parseFloat(v)) / 100 : num(v), half);
+        const square = Math.abs(r.width - r.height) <= Math.max(r.width, r.height) * 0.1;
+        // Fully round and square is an avatar, a dot or an icon button: not part of the shape.
+        if (!(radius >= half - 0.5 && square) && (control || radius > 0)) {
+          const key = `${sel(el)}|${Math.round(radius)}`;
+          if (!seenBox.has(key)) { seenBox.add(key); (control ? st.controls : st.boxes).push({ selector: sel(el), radius: Math.round(radius * 10) / 10, tag, boxed: bg.a > 0 || edged || cs.boxShadow !== 'none' }); }
+        }
+      }
+      if (bg.a >= 0.5 && r.width * r.height >= 2000) addColor(cs.backgroundColor, 'background', el);
+      const isImage = /^(img|video|canvas|svg|picture)$/.test(tag) || /url\(/.test(cs.backgroundImage || '');
+      if (isImage && tag !== 'picture') { const sh = share(r); if (sh >= 0.05) st.images.push({ selector: sel(el), share: Math.round(sh * 100) }); }
+    }
+    // Sections: the outermost page bands; their own vertical padding, or that of their first child when they have none.
+    const bands = [...document.querySelectorAll('main section, main > *, body > section')].filter((el) => visible(el) && el.getBoundingClientRect().height >= 200 && el.getBoundingClientRect().width >= innerWidth * 0.8);
+    for (const el of bands) {
+      if (bands.some((o) => o !== el && o.contains(el))) continue;
+      const pad = (e) => { const c = getComputedStyle(e); return (num(c.paddingTop) + num(c.paddingBottom)) / 2; };
+      const own = pad(el);
+      const value = own > 0 ? own : el.firstElementChild ? pad(el.firstElementChild) : 0;
+      if (value > 0) st.sections.push({ selector: sel(el), pad: Math.round(value) });
+    }
+    out.style = st;
   }
 
   // 6. Viewport meta.
@@ -367,6 +496,157 @@ function pageProbe(opts) {
 }
 
 // ---------------------------------------------------------------------------
+// CSS effect probe (runs in the page): removes one declaration at a time and compares the computed
+// style of the elements its rule matches. A declaration whose removal changes nothing is redundant
+// at this width: another rule or the browser default already gives that value.
+// Status per declaration: effect | no-effect | unmatched (selector matches nothing) | inactive
+// (media or supports condition false) | unchecked (state or pseudo-element selector, container
+// query, transition and animation properties, over the cap).
+// ---------------------------------------------------------------------------
+function cssEffectProbe(opts) {
+  const base = (sh) => (sh.href ? sh.href.replace(location.origin, '') : `<style${sh.ownerNode && sh.ownerNode.id ? '#' + sh.ownerNode.id : ''}>`);
+  const seenLabel = new Map();
+  const labels = new Map(); // stylesheet -> unique label; anonymous <style> blocks get a running number
+  for (const sh of document.styleSheets) {
+    const n = (seenLabel.get(base(sh)) || 0) + 1;
+    seenLabel.set(base(sh), n);
+    labels.set(sh, n > 1 ? `${base(sh)} (${n})` : base(sh));
+  }
+  const vendor = new RegExp(opts.vendor, 'i');
+  const want = (name) => (opts.patterns.length ? opts.patterns.some((p) => name.includes(p)) : !vendor.test(name));
+  const out = { decls: [], sheets: [], unreadable: [], others: [], capped: false, altered: [], error: null };
+  const STATE = /:(?:hover|focus|focus-visible|focus-within|active|visited|target|checked|disabled|invalid|user-invalid|open|popover-open|placeholder-shown)\b|::|:(?:before|after|first-line|first-letter)\b/i;
+  // Not judged: transitions and animations (frozen during the probe) and border-image, which the serializer adds to every border shorthand.
+  const SKIP_PROP = /^(?:transition|animation|border-image)(?:-|$)/;
+  // Declarations as the browser serializes them: longhands that came from one shorthand are judged together.
+  const split = (cssText) => {
+    const decls = [];
+    let depth = 0, quote = null, cur = '';
+    for (const ch of cssText + ';') {
+      if (quote) { if (ch === quote) quote = null; cur += ch; continue; }
+      if (ch === '"' || ch === "'") quote = ch;
+      else if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      if (ch === ';' && depth <= 0) { const at = cur.indexOf(':'); if (at > 0) decls.push({ prop: cur.slice(0, at).trim(), text: cur.trim() }); cur = ''; continue; }
+      cur += ch;
+    }
+    return decls;
+  };
+  // Running transitions would hide a change: the computed value right after a removal is still the old one.
+  // A constructed stylesheet is not subject to a style-src policy and does not appear in document.styleSheets.
+  let freeze;
+  try {
+    freeze = new CSSStyleSheet();
+    freeze.replaceSync('*,*::before,*::after{transition:none!important;animation:none!important}');
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, freeze];
+  } catch (e) { out.error = `transitions could not be frozen (${e.message})`; return out; }
+
+  // CSS nesting, desugared the way the specification describes it: "&" stands for :is(parent),
+  // and a nested selector without "&" is a descendant of the parent.
+  const splitList = (sel) => {
+    const parts = [];
+    let depth = 0, cur = '';
+    for (const ch of sel) {
+      if (ch === '(' || ch === '[') depth++;
+      else if (ch === ')' || ch === ']') depth--;
+      if (ch === ',' && depth === 0) { parts.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    if (cur.trim()) parts.push(cur.trim());
+    return parts;
+  };
+  const resolve = (sel, parent) => (parent ? splitList(sel).map((s) => (s.includes('&') ? s.replace(/&/g, `:is(${parent})`) : `:is(${parent}) ${s}`)).join(', ') : sel);
+  // Where each "selector { declaration }" occurs, over every readable stylesheet, framework included.
+  const places = new Map();
+  const collect = (rules, name, parent) => {
+    for (const r of rules) {
+      const type = r.constructor.name;
+      const selector = type === 'CSSStyleRule' ? resolve(r.selectorText, parent) : parent;
+      if (type === 'CSSStyleRule') for (const d of split(r.style.cssText)) { const k = `${selector}|${d.text}`; if (!places.has(k)) places.set(k, []); places.get(k).push(name); }
+      if (type === 'CSSImportRule') { try { if (r.styleSheet) collect(r.styleSheet.cssRules, name, ''); } catch {} }
+      else if (r.cssRules && !/Keyframes/.test(type)) collect(r.cssRules, name, selector);
+    }
+  };
+  for (const sh of document.styleSheets) { try { collect(sh.cssRules, labels.get(sh), ''); } catch {} }
+
+  let tested = 0;
+  const scratch = document.createElement('i').style;
+  const styleRule = (rule, sheet, key, ctx, selector) => {
+    const st = rule.style;
+    const saved = st.cssText;
+    const decls = split(saved);
+    let els = null, fixed = null;
+    // The probe restores a rule from its serialized text. Where that text does not survive a round trip
+    // (a shorthand with var() next to one of its longhands, the all shorthand), the rule is left untouched.
+    scratch.cssText = saved;
+    if (!ctx.active) fixed = 'inactive';
+    else if (ctx.unchecked || STATE.test(selector) || scratch.cssText !== saved || decls.length > 60 || /:\s*(?:;|$)/.test(saved)) fixed = 'unchecked';
+    else {
+      try { els = [...document.querySelectorAll(selector)]; } catch { fixed = 'unchecked'; }
+      if (els && !els.length) fixed = 'unmatched';
+    }
+    // Every matched element up to the limit; beyond it an even spread, so the first elements in the document do not decide alone.
+    let sample = els || [];
+    if (sample.length > opts.sample) { const step = sample.length / opts.sample; sample = Array.from({ length: opts.sample }, (_, i) => sample[Math.floor(i * step)]); }
+    for (const { prop, text } of decls) {
+      let status = fixed;
+      if (!status && SKIP_PROP.test(prop)) status = 'unchecked';
+      if (!status && tested >= opts.cap) { status = 'unchecked'; out.capped = true; }
+      if (!status) {
+        tested++;
+        const tmp = document.createElement('i').style;
+        tmp.cssText = text;
+        const longhands = tmp.length ? [...tmp] : [prop];
+        const read = () => sample.flatMap((e) => { const cs = getComputedStyle(e); return longhands.map((l) => cs.getPropertyValue(l)); });
+        const before = read();
+        st.removeProperty(prop);
+        const after = read();
+        st.cssText = saved; // restores value, priority and order
+        if (st.cssText !== saved) out.altered.push(`${sheet} › ${selector}`);
+        status = before.some((v, i) => v !== after[i]) ? 'effect' : 'no-effect';
+      }
+      const twins = (places.get(`${selector}|${text}`) || []);
+      const dup = twins.length > 1 ? [...new Set(twins.filter((x) => x !== sheet))].slice(0, 2).join(', ') || 'this stylesheet' : '';
+      out.decls.push({ key: `${key}|${prop}`, sheet, selector, text, status, n: els ? els.length : 0, sampled: sample.length, dup });
+    }
+  };
+  const mediaOn = (media) => !media || !media.mediaText || matchMedia(media.mediaText).matches;
+  const walk = (rules, sheet, key, ctx) => {
+    for (let i = 0; i < rules.length; i++) {
+      const r = rules[i], k = `${key}.${i}`, type = r.constructor.name;
+      if (type === 'CSSStyleRule') {
+        const selector = resolve(r.selectorText, ctx.parent);
+        styleRule(r, sheet, k, ctx, selector);
+        if (r.cssRules && r.cssRules.length) walk(r.cssRules, sheet, k, { ...ctx, parent: selector });
+      }
+      else if (type === 'CSSNestedDeclarations') { if (ctx.parent) styleRule(r, sheet, k, ctx, ctx.parent); }
+      else if (type === 'CSSMediaRule') walk(r.cssRules, sheet, k, { ...ctx, active: ctx.active && mediaOn(r.media) });
+      else if (type === 'CSSSupportsRule') walk(r.cssRules, sheet, k, { ...ctx, active: ctx.active && CSS.supports(r.conditionText) });
+      else if (type === 'CSSLayerBlockRule') walk(r.cssRules, sheet, k, ctx);
+      else if (type === 'CSSImportRule') {
+        const on = ctx.active && mediaOn(r.media) && (!r.supportsText || CSS.supports(r.supportsText));
+        try { if (r.styleSheet) walk(r.styleSheet.cssRules, sheet, k, { ...ctx, active: on }); } catch {}
+      }
+      else if (/^CSS(?:Keyframes|FontFace|Page|Property|CounterStyle|Namespace|LayerStatement|FontFeatureValues|FontPaletteValues)Rule$/.test(type)) continue;
+      else if (r.cssRules) walk(r.cssRules, sheet, k, { ...ctx, unchecked: true }); // @container, @scope, @starting-style
+    }
+  };
+  let index = 0;
+  for (const sh of document.styleSheets) {
+    index++;
+    if (sh.disabled) continue;
+    const name = labels.get(sh);
+    if (!want(name)) { out.others.push(name); continue; }
+    let rules;
+    try { rules = sh.cssRules; } catch { out.unreadable.push(name); continue; }
+    out.sheets.push(name);
+    walk(rules, name, `${index}:${name}`, { active: mediaOn(sh.media), unchecked: false, parent: '' });
+  }
+  document.adoptedStyleSheets = document.adoptedStyleSheets.filter((x) => x !== freeze);
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // One width
 // ---------------------------------------------------------------------------
 async function checkWidth(cdp, url, width, args, outDir) {
@@ -378,6 +658,7 @@ async function checkWidth(cdp, url, width, args, outDir) {
   const console_ = [];
   const requests = new Map();
   let loaded = false;
+  let docStatus = null;
   const onEvent = (m) => {
     if (m.sessionId !== sessionId) return;
     const p = m.params;
@@ -396,7 +677,13 @@ async function checkWidth(cdp, url, width, args, outDir) {
         break;
       case 'Network.requestWillBeSent': requests.set(p.requestId, p.request.url); break;
       case 'Network.responseReceived':
+        if (p.type === 'Document' && docStatus === null && p.response.url.split('#')[0] === url.split('#')[0]) docStatus = p.response.status;
         if (p.response.status >= 400) console_.push({ kind: 'request', text: `HTTP ${p.response.status}`, where: p.response.url });
+        break;
+      case 'Page.javascriptDialogOpening':
+        // An open alert, confirm or prompt blocks the page and every measurement after it.
+        console_.push({ kind: 'dialog', text: `${p.type} dialog dismissed: ${String(p.message).slice(0, 120)}` });
+        s('Page.handleJavaScriptDialog', { accept: false }).catch(() => {});
         break;
       case 'Network.loadingFailed':
         if (!p.canceled) console_.push({ kind: 'request', text: p.blockedReason ? `blocked (${p.blockedReason})` : p.errorText, where: requests.get(p.requestId) || '' });
@@ -415,11 +702,12 @@ async function checkWidth(cdp, url, width, args, outDir) {
     const t0 = Date.now();
     while (!loaded && Date.now() - t0 < LOAD_TIMEOUT) await sleep(100);
     if (!loaded) add('load', 'warn', 'document', `load event did not fire within ${LOAD_TIMEOUT / 1000} s; measured anyway`);
+    if (docStatus !== null && docStatus >= 400) add('load', 'error', 'document', `the page answered HTTP ${docStatus}; what was measured is an error or block page, not the site (bot protection often blocks headless Chrome)`);
     await sleep(args.wait);
     // Scroll through once so lazy content loads, then back to the top.
     await s('Runtime.evaluate', { awaitPromise: true, expression: `(async () => { const h = innerHeight; for (let y = 0, i = 0; y < document.documentElement.scrollHeight && i < 40; y += h, i++) { scrollTo(0, y); await new Promise(r => setTimeout(r, 80)); } scrollTo(0, 0); await new Promise(r => setTimeout(r, 400)); })()` });
 
-    const ev = await s('Runtime.evaluate', { expression: `(${pageProbe})(${JSON.stringify({ cap: CONTRAST_CAP })})`, returnByValue: true });
+    const ev = await s('Runtime.evaluate', { expression: `(${pageProbe})(${JSON.stringify({ cap: CONTRAST_CAP, style: !!args.style })})`, returnByValue: true });
     if (ev.exceptionDetails) throw new Error(`page probe failed: ${ev.exceptionDetails.exception?.description || ev.exceptionDetails.text}`);
     const p = ev.result.value;
 
@@ -506,6 +794,13 @@ async function checkWidth(cdp, url, width, args, outDir) {
     for (const i of p.images) add('image-alt', 'error', i.selector, `img without alt attribute (${i.src || 'no src'}); alt="" if decorative`);
     for (const n of p.names) add('accessible-name', 'error', n.selector, `${n.tag}${n.href ? ` href="${n.href}"` : ''} has no accessible name (text, aria-label, aria-labelledby, title or img alt)`);
 
+    // 4b. Image priority
+    if (p.hero) {
+      if (p.hero.lazy) add('image-priority', 'error', p.hero.selector, `largest image in the first viewport has loading="lazy" (${p.hero.src || 'no src'}); remove it and set fetchpriority="high", lazy loading delays the largest paint`);
+      else if (!p.hero.high) add('image-priority', 'warn', p.hero.selector, `largest image in the first viewport has no fetchpriority="high" (${p.hero.src || 'no src'}); set it so the browser fetches this image first`);
+    }
+    if (p.highPriority > 2) add('image-priority', 'warn', 'img[fetchpriority=high]', `${p.highPriority} images with fetchpriority="high"; keep it to one or two, more cancels the effect`);
+
     // 5. Target size
     for (const t of p.targets.slice(0, 40)) add('target-size', 'warn', t.selector, `${t.w} × ${t.h} px, below 24 × 24 (WCAG 2.5.8; check spacing exception)`);
     if (p.targets.length > 40) add('target-size', 'warn', '…', `${p.targets.length - 40} more small targets`);
@@ -520,7 +815,10 @@ async function checkWidth(cdp, url, width, args, outDir) {
       if (max !== null && max < 2) add('viewport-meta', 'error', 'meta[name=viewport]', `"${p.viewport}" limits zoom (maximum-scale=${kv['maximum-scale']}); remove maximum-scale`);
     }
 
-    // 7. Console and requests
+    // 7. Style position (with --direction)
+    if (args.style && p.style) for (const f of styleFindings(p.style, args.style, width === args.styleWidth)) add('style-position', f.severity, f.selector, f.detail);
+
+    // 7b. Console and requests
     for (const c of console_) add('console', 'warn', c.kind, `${String(c.text).split('\n')[0].slice(0, 240)}${c.where ? ` (${c.where.slice(0, 160)})` : ''}`);
 
     // 8. Screenshot
@@ -530,6 +828,13 @@ async function checkWidth(cdp, url, width, args, outDir) {
       const shot = await s('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: Math.max(width, Math.ceil(size.width)), height: Math.min(SHOT_MAX_HEIGHT, Math.ceil(size.height)), scale: 1 } });
       fs.writeFileSync(path.join(outDir, `${width}.png`), Buffer.from(shot.data, 'base64'));
     }
+    // 9. CSS effect (opt-in), after the screenshot because it touches the stylesheets. Collected per width, combined in main.
+    if (args.cssEffect) {
+      const ce = await s('Runtime.evaluate', { expression: `(${cssEffectProbe})(${JSON.stringify({ patterns: args.cssEffect, cap: CSS_EFFECT_CAP, sample: CSS_EFFECT_SAMPLE, vendor: CSS_VENDOR })})`, returnByValue: true });
+      if (ce.exceptionDetails) add('css-no-effect', 'manual', 'stylesheets', `CSS effect probe failed: ${String(ce.exceptionDetails.exception?.description || ce.exceptionDetails.text).split('\n')[0]}`);
+      else if (ce.result.value.error) add('css-no-effect', 'manual', 'stylesheets', `CSS effect not checked: ${ce.result.value.error}`);
+      else args.cssEffectRuns.push({ width, ...ce.result.value });
+    }
     return findings;
   } finally {
     cdp.off(onEvent);
@@ -538,9 +843,110 @@ async function checkWidth(cdp, url, width, args, outDir) {
 }
 
 // ---------------------------------------------------------------------------
+// Style position: compares what the probe measured with the confirmed stage per axis.
+// Density and type contrast depend on the viewport, so they are judged at one reference width only.
+// ---------------------------------------------------------------------------
+function styleFindings(m, style, isRef) {
+  const out = [];
+  const warn = (selector, detail) => out.push({ severity: 'warn', selector, detail });
+  // Stage bounds are stored with a small offset (2.01, 55.99) so neighbours do not overlap; print the plain number.
+  const low = (v) => Math.floor(v * 10) / 10, high = (v) => (Math.round(v * 100) % 100 === 99 ? Math.floor(v) : v);
+  const range = ([lo, hi]) => (hi === Infinity ? `above ${low(lo)}` : lo === 0 ? `up to ${high(hi)}` : `${low(lo)} to ${high(hi)}`);
+  const listed = (items, each) => { items.slice(0, STYLE_LIST).forEach(each); if (items.length > STYLE_LIST) warn('…', `${items.length - STYLE_LIST} more`); };
+
+  if (style.shape) {
+    const [lo, hi] = STYLE_AXES.shape[style.shape];
+    const high = [...m.controls, ...m.boxes].filter((b) => b.radius > hi);
+    listed(high, (b) => warn(b.selector, `corner radius ${b.radius} px with shape "${style.shape}" (${range([lo, hi])} px)`));
+    // Too small a radius is judged only on controls that show a box (fill, border or shadow): images and page
+    // bands are square in every shape, and a text-only trigger has no corners to see.
+    const small = m.controls.filter((b) => b.boxed && b.radius < Math.floor(lo));
+    listed(small, (b) => warn(b.selector, `corner radius ${b.radius} px on <${b.tag}> with shape "${style.shape}" (${range([lo, hi])} px)`));
+  }
+  if (style.color_budget) {
+    const max = STYLE_AXES.color_budget[style.color_budget];
+    // Hue families: colors whose hues lie within 25 degrees of each other count as one.
+    const sorted = [...m.colors].sort((a, b) => a.h - b.h);
+    const families = [];
+    for (const c of sorted) { const last = families[families.length - 1]; if (last && c.h - last[last.length - 1].h <= 25) last.push(c); else families.push([c]); }
+    if (families.length > 1 && families[0][0].h + 360 - families[families.length - 1][families[families.length - 1].length - 1].h <= 25) families[0].push(...families.pop());
+    if (families.length > max) warn('colors', `${families.length} hue families besides neutrals with color budget "${style.color_budget}" (${max}): ${families.map((f) => `${f[0].color} (${f[0].kind} of ${f[0].selector})`).slice(0, 5).join(', ')}`);
+  }
+  if (style.imagery) {
+    const wants = STYLE_AXES.imagery[style.imagery];
+    const big = m.images.filter((i) => i.share >= 10);
+    if (!wants && m.images.length) warn(m.images[0].selector, `image covering ${m.images[0].share} % of the first viewport with imagery "type-only"`);
+    if (wants && !big.length) warn('first viewport', `no image of at least 10 % of the first viewport with imagery "${style.imagery}"`);
+  }
+  if (!isRef) return out;
+  if (style.type_contrast && m.top) {
+    const [lo, hi] = STYLE_AXES.type_contrast[style.type_contrast];
+    const ratio = m.top.px / m.body;
+    if (ratio < lo - 0.005 || ratio > hi + 0.005) warn(m.top.selector, `largest font size ${Math.round(m.top.px * 10) / 10} px is ${ratio.toFixed(1)} times body size (${Math.round(m.body * 10) / 10} px) with type contrast "${style.type_contrast}" (${range([lo, hi])}) "${m.top.text}"`);
+  }
+  if (style.density) {
+    const [lo, hi] = STYLE_AXES.density[style.density];
+    const pads = m.sections.map((s) => s.pad).sort((a, b) => a - b);
+    if (!pads.length) out.push({ severity: 'manual', selector: 'sections', detail: `no page section with vertical padding found; measure density "${style.density}" by hand` });
+    else {
+      const median = pads[Math.floor((pads.length - 1) / 2)];
+      if (median < lo || median > hi) warn('sections', `median section padding ${median} px over ${pads.length} section(s) with density "${style.density}" (${range([lo, hi])} px); first: ${m.sections[0].selector}`);
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// CSS effect: a declaration is reported when it had no effect at every width where it was tested
+// and an effect at none. Rules that never matched are summed up, not listed: they may match other pages.
+// ---------------------------------------------------------------------------
+function cssEffectFindings(runs, patterns) {
+  const findings = [];
+  const add = (width, severity, selector, detail, alsoAt = []) => findings.push({ width, check: 'css-no-effect', severity, selector, detail, alsoAt });
+  const first = runs[0];
+  if (!first) return { findings, summary: null };
+  const w0 = first.width;
+  const sheets = [...new Set(runs.flatMap((r) => r.sheets))];
+  const unreadable = [...new Set(runs.flatMap((r) => r.unreadable))];
+  const skipped = [...new Set(runs.flatMap((r) => r.others))];
+  if (!sheets.length && !unreadable.length) {
+    const rest = skipped.slice(0, 12).join(', ') || 'none';
+    add(w0, 'warn', 'stylesheets', patterns.length ? `no stylesheet matches "${patterns.join(', ')}"; on this page: ${rest}` : `no stylesheet of the project found; left out as framework or core: ${rest}. Name one with --css-only`);
+    return { findings, summary: { sheets, skipped, tested: 0, noEffect: 0, unmatched: 0, unchecked: 0, capped: false } };
+  }
+  const byKey = new Map();
+  for (const run of runs) for (const d of run.decls) {
+    if (!byKey.has(d.key)) byKey.set(d.key, { ...d, at: {} });
+    const e = byKey.get(d.key);
+    e.at[run.width] = d.status;
+    if (d.n > e.n) { e.n = d.n; e.sampled = d.sampled; }
+  }
+  const none = [], unmatched = new Set();
+  let tested = 0, unchecked = 0;
+  for (const d of byKey.values()) {
+    const st = Object.values(d.at);
+    if (st.includes('effect')) { tested++; continue; }
+    if (st.includes('no-effect')) { tested++; none.push(d); continue; }
+    if (st.includes('unmatched')) unmatched.add(`${d.sheet} › ${d.selector}`);
+    else unchecked++;
+  }
+  for (const d of none.slice(0, CSS_EFFECT_LIST)) {
+    const ws = Object.keys(d.at).filter((w) => d.at[w] === 'no-effect').map(Number);
+    add(ws[0], 'warn', `${d.sheet} › ${d.selector}`, `${d.text} changes nothing on ${d.sampled < d.n ? `${d.sampled} sampled of ${d.n}` : `the ${d.n}`} matched element(s); ${d.dup ? `the same declaration is also in ${d.dup}` : 'another rule or the default already gives this value'}`, ws.slice(1));
+  }
+  if (none.length > CSS_EFFECT_LIST) add(w0, 'warn', '…', `${none.length - CSS_EFFECT_LIST} more declarations without effect`);
+  if (unmatched.size) add(w0, 'manual', 'stylesheets', `${unmatched.size} rule(s) match nothing on this page (first: ${[...unmatched][0]}); check the other pages before deleting them`);
+  if (unreadable.length) add(w0, 'manual', 'stylesheets', `not readable from the page (other origin): ${unreadable.slice(0, 8).join(', ')}`);
+  const altered = [...new Set(runs.flatMap((r) => r.altered))];
+  if (altered.length) add(w0, 'manual', 'stylesheets', `${altered.length} rule(s) could not be restored exactly after the probe (first: ${altered[0]}); results for this run are not reliable`);
+  const capped = runs.some((r) => r.capped);
+  return { findings, summary: { sheets, skipped, tested, noEffect: none.length, unmatched: unmatched.size, unchecked, capped } };
+}
+
+// ---------------------------------------------------------------------------
 // Reports
 // ---------------------------------------------------------------------------
-const ORDER = ['load', 'reflow', 'contrast', 'gradient-text', 'animation', 'reduced-motion', 'image-alt', 'accessible-name', 'target-size', 'viewport-meta', 'console'];
+const ORDER = ['load', 'reflow', 'contrast', 'gradient-text', 'animation', 'reduced-motion', 'image-alt', 'image-priority', 'accessible-name', 'target-size', 'viewport-meta', 'style-position', 'css-no-effect', 'console'];
 const countBy = (fs_) => ({ error: fs_.filter((f) => f.severity === 'error').length, warn: fs_.filter((f) => f.severity === 'warn').length, manual: fs_.filter((f) => f.severity === 'manual').length });
 const summaryLine = (c, n) => `render-check: ${c.error} error(s), ${c.warn} warning(s), ${c.manual} manual check(s) at ${n} width(s)`;
 function grouped(findings, widths) {
@@ -551,6 +957,11 @@ function grouped(findings, widths) {
 }
 const also = (f) => (f.alsoAt && f.alsoAt.length ? ` (also at ${f.alsoAt.join(', ')})` : '');
 
+const cssEffectLines = (c) => [
+  `css-effect: ${c.tested} declaration(s) tested in ${c.sheets.length} stylesheet(s): ${c.sheets.join(', ') || 'none'}`,
+  `css-effect: left out as framework or core${c.skipped.length ? `: ${c.skipped.join(', ')}` : ': nothing'}`,
+  `css-effect: ${c.noEffect} without effect, ${c.unmatched} rule(s) without a match, ${c.unchecked} declaration(s) not judged (states, pseudo-elements, container rules, inactive media, transitions)${c.capped ? `; stopped at ${CSS_EFFECT_CAP} declarations per width` : ''}`,
+];
 function textReport(meta, findings) {
   const lines = [`render-check ${meta.url}`, `${meta.browser}, level ${meta.level.toUpperCase()}, reduced motion ${meta.reducedMotion ? 'emulated' : 'off'}`, ''];
   for (const g of grouped(findings, meta.widths)) {
@@ -561,6 +972,7 @@ function textReport(meta, findings) {
     }
     lines.push('');
   }
+  if (meta.cssEffect) lines.push(...cssEffectLines(meta.cssEffect), '');
   if (meta.outDir) lines.push(`report and screenshots: ${meta.outDir}`, '');
   lines.push(summaryLine(countBy(findings), meta.widths.length));
   return lines.join('\n') + '\n';
@@ -578,6 +990,7 @@ function mdReport(meta, findings) {
     for (const ch of g.checks) for (const f of ch.items) l.push(`| ${f.check} | ${f.severity} | \`${esc(f.selector)}\` | ${esc(f.detail + also(f))} |`);
     l.push('');
   }
+  if (meta.cssEffect) l.push('## CSS effect', '', ...cssEffectLines(meta.cssEffect).map((x) => `- ${x.replace(/^css-effect: /, '')}`), '');
   return l.join('\n');
 }
 
@@ -593,6 +1006,19 @@ async function main() {
     process.stderr.write(`render-check: Chrome not found${args.chrome ? ` at ${args.chrome}` : ''}. Install Google Chrome or Chromium, or pass --chrome <path> (or set CHROME_PATH).\n`);
     process.exit(2);
   }
+  // Style position: the brand profile of the data folder first, then the direction file on top, axis by axis.
+  if (args.direction) {
+    try {
+      const data = findDataFolder(process.cwd());
+      const brand = data && fs.existsSync(path.join(data, 'brand.md')) ? readStyle(path.join(data, 'brand.md')) : {};
+      const own = readStyle(args.direction);
+      if (!Object.keys(own).length) throw new Error('no style position found (expected "style:" with at least one axis in the front matter)');
+      args.style = { ...brand, ...own };
+    } catch (e) { usage(`direction ${args.direction}: ${e.message}`); }
+    // Density and type contrast are judged at the tested width closest to 1280 px, from 1024 px up.
+    const wide = args.widths.filter((w) => w >= 1024);
+    args.styleWidth = wide.length ? wide.reduce((a, b) => (Math.abs(b - 1280) < Math.abs(a - 1280) ? b : a)) : null;
+  }
   let outDir = null;
   if (args.out) outDir = path.resolve(args.out);
   else if (args.out === undefined) { const data = findDataFolder(process.cwd()); if (data) outDir = path.join(data, 'reports', `${today()}-${slugFor(args.url)}-render`); }
@@ -603,6 +1029,7 @@ async function main() {
   const meta = { url: args.url, browser: chrome.info.Browser || 'Chrome', level: args.level, reducedMotion: args.reducedMotion, widths: args.widths, date: today(), outDir };
   let cdp;
   const all = [];
+  if (args.cssEffect) args.cssEffectRuns = [];
   try {
     cdp = await connect(chrome.info.webSocketDebuggerUrl);
     const seen = new Map();
@@ -626,10 +1053,15 @@ async function main() {
   try { cdp.close(); } catch {}
   await chrome.cleanup();
 
+  if (args.style && args.styleWidth === null && (args.style.density || args.style.type_contrast)) {
+    all.push({ width: args.widths[0], check: 'style-position', severity: 'manual', selector: 'widths', detail: 'density and type contrast are measured at 1024 px or wider; add such a width', alsoAt: [] });
+  }
+  const cssEffect = args.cssEffect ? cssEffectFindings(args.cssEffectRuns, args.cssEffect) : null;
+  if (cssEffect) { all.push(...cssEffect.findings); meta.cssEffect = cssEffect.summary; }
   const counts = countBy(all);
   if (outDir) fs.writeFileSync(path.join(outDir, 'report.md'), mdReport(meta, all));
   if (args.format === 'json') {
-    process.stdout.write(JSON.stringify({ tool: 'render-check', version: VERSION, url: args.url, browser: meta.browser, level: args.level, reducedMotion: args.reducedMotion, widths: args.widths, outDir, summary: counts, findings: all }, null, 2) + '\n');
+    process.stdout.write(JSON.stringify({ tool: 'render-check', version: VERSION, url: args.url, browser: meta.browser, level: args.level, reducedMotion: args.reducedMotion, widths: args.widths, outDir, style: args.style || undefined, summary: counts, cssEffect: cssEffect ? cssEffect.summary : undefined, findings: all }, null, 2) + '\n');
   } else process.stdout.write(textReport(meta, all));
   process.exit(counts.error ? 1 : 0);
 }

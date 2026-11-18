@@ -4,7 +4,7 @@ description: "Rework a page, screen, carousel or dashboard so it fits the brand 
 license: CC-BY-4.0
 ---
 
-<!-- last-reviewed: 2026-11-08 -->
+<!-- last-reviewed: 2026-11-17 -->
 # Passes
 
 Run after `site-direction` is confirmed. Composes with: `site-copy` (pass 4), `site-polish` (motion and finish), `site-verify` (after every pass and at the end), and the stack skills `site-acss`, `site-etch`, `site-bricks`. Without a framework, use [plain-css.md](plain-css.md) for tokens.
@@ -61,7 +61,7 @@ Values come from the brand profile and the project's tokens. Where a framework i
 - Logos of known third parties keep their real colors.
 - Do not use a sparkle to mean AI. The copy says what the AI does.
 - An icon must read at 20–24 px without animation. Label icons whose meaning is not obvious.
-- **Check:** lint `design/emoji-*` clean.
+- **Check:** lint `copy/emoji-in-ui` and `copy/sparkle-emoji` clean.
 
 ## 4. Copy
 
@@ -81,7 +81,8 @@ Load `site-copy` and the language file. The short version:
 - Sentence case. Do not use uppercase labels with wide tracking unless the borrowed object is uppercase.
 - Tabular figures for numbers that update or align; one number format per screen.
 - At most five sizes. Negative tracking only on display sizes.
-- **Check:** count sizes and weights on the render; lint `design/heavy-weight`, `design/uppercase-tracking` clean.
+- Fluid sizes: the largest value is at most 2.5 times the smallest, both in `rem`, so zoom still reaches 200 % (lint `css/fluid-type-range`).
+- **Check:** count sizes and weights on the render; lint `design/heavy-weight`, `design/uppercase-tracking` clean; with `--direction`, `direction/type-contrast` clean.
 
 ## 6. Layout
 
@@ -93,17 +94,19 @@ Load `site-copy` and the language file. The short version:
 - **Dashboards:** the key figure is visually dominant (size, contrast), not just top-left. Show consequences, not raw counters ("3 devices out of contract in 14 days"). Standard charts (line, bar, heatmap). Overview first, detail on click. A short plain-language summary of what changed. Every chart leads to its table.
 - **Tables:** few columns, absolute values, precomputed comparisons (a delta column), numbers right-aligned, sticky header on long tables, row hover or zebra striping on wide ones, cards or fewer columns on phones.
 - **B2B service pages:** trust comes from named people, real references, certificates and locations, taken from the profile's facts only.
-- **Check:** screenshots at 360, 768, 1280 and 1920 px wide.
+- **Check:** screenshots at the short set of widths from `site-verify` (390 and 1440 px), plus 1920 px for dead bands.
 
 ## 7. Details
 
-- Nested radius: inner = outer − padding, never below 4 px. Shape comes from the profile's shape language, not from a default.
+- Nested radius: inner = outer − padding, never below 4 px (with shape `sharp`: never below 0). Shape comes from the confirmed style position or the profile's shape language, not from a default.
 - One depth cue per surface. Border + shadow + ring + gradient is indecision.
 - No dotted or dashed lines unless the object is really perforated.
 - Stat cards show number, label and change; no decorative sparklines or icons.
 - Hover and focus states exist for every interactive element, in palette colors; focus stays visible.
 - Consistent image ratios, radii and spacing across the page.
-- **Check:** walk every interactive element with keyboard and pointer.
+- The largest image of the first viewport has `fetchpriority="high"` and no `loading="lazy"` (lint `perf/lazy-high-priority`, `render-check` `image-priority`).
+- Input edges and selected states are a real border or outline, not a shadow alone; Windows High Contrast removes shadows.
+- **Check:** walk every interactive element with keyboard and pointer; with `--direction`, lint `direction/shape` clean.
 
 ## 8. The moment
 

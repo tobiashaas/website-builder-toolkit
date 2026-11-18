@@ -27,6 +27,7 @@ Paths can be files or folders. Folders are walked recursively; `node_modules`, `
 | Option | Values | Default | Effect |
 | --- | --- | --- | --- |
 | `--brand <file>` | path to a brand profile | none | enables `brand/*` rules (see below) |
+| `--direction <file>` | path to a confirmed direction | none | enables `direction/*` rules from the style position in its front matter (see below) |
 | `--adapter <list>` | `acss`, `tailwind`, `etch`, `bricks` (comma-separated) | none | enables `acss/*` or `tailwind/*` rules; `etch` and `bricks` are accepted but add no rules yet, combine them with `acss` if the project uses Automatic.css |
 | `--lang <code>` | `de`, `en`, `auto` | `auto` | copy language; `auto` decides per file (`<html lang>`, else word frequency) |
 | `--format <fmt>` | `text`, `json` | `text` | output format |
@@ -81,6 +82,7 @@ Looked up in the current folder, or passed with `--config`. All keys are optiona
   "rules": { "copy/soft-hype-word": "off", "css/transition-all": "error" },
   "ignore": ["legacy/**", "**/*.generated.css"],
   "brand": "brand.md",
+  "direction": "website-builder/direction/home.md",
   "adapter": "acss",
   "lang": "de",
   "failOn": "warn",
@@ -91,7 +93,7 @@ Looked up in the current folder, or passed with `--config`. All keys are optiona
 
 - `rules`: per-rule severity override: `off`, `info`, `warn`, `error`.
 - `ignore`: globs relative to the current folder (`*`, `**`, `?`).
-- `brand`: resolved relative to the config file.
+- `brand`, `direction`: resolved relative to the config file.
 - `thresholds`: `pxDistinct` (distinct px values before `css/px-sprawl`), `important` (`!important` count before `css/important-overuse`), `rounded` (`rounded-2xl/3xl` uses before `tailwind/rounded-overuse`), `glowBlurPx` (minimum blur for `design/glow-shadow`), `scaleMax` (largest accepted hover scale), `trackingEm` (letter-spacing that counts as wide for uppercase).
 
 ## Brand profile front matter
@@ -128,6 +130,30 @@ claims_never: ["100 % Verfügbarkeit"]
 ---
 ```
 
+## Style position
+
+`--direction` reads `style:` from the front matter of a direction file (`site-direction` skill, `template.md`). A brand profile may carry the same block as a site-wide default; the direction file wins axis by axis. An unknown stage, or a direction file without any axis under `style:`, is a usage error (exit 2).
+
+| Axis | Stages | Checked by |
+| --- | --- | --- |
+| `shape` | `sharp` \| `soft` \| `round` | `direction/shape`: literal corner radius above 2 px (`sharp`) or 10 px (`soft`) in `border-radius` and `--*radius*` properties; percentages, `var()`, `calc()` and tokens named full, pill, round or circle are skipped; `round` has no upper bound |
+| `type_contrast` | `flat` \| `medium` \| `strong` | `direction/type-contrast`: largest font size in a file (`font-size`, the size in a `font` shorthand, and size tokens such as `--text-xl` or `--h1`) above 2 times (`flat`) or 3.5 times (`medium`) body size; body size is the `html`, `body` or `:root` font size in that file, else 16 px; `clamp()` counts with its maximum |
+| `density`, `color_budget`, `imagery` | see `site-direction` | read and validated, not checked yet |
+
+```yaml
+---
+page: home
+confirmed_by: "A. Person"
+confirmed_on: 2026-11-17
+style:
+  density: regular
+  type_contrast: medium
+  shape: soft
+  color_budget: one-accent
+  imagery: photo
+---
+```
+
 ## What gets checked where
 
 The linter builds three views of each file and runs each rule only on the view it is meant for:
@@ -150,7 +176,7 @@ In Markdown and plain text, words in quotes or emphasis and lines that list seve
 | `design/gradient-text` | error | core | Gradient text (background-clip: text over a gradient). | Use a solid text color from the palette; carry emphasis with size, weight or position. |
 | `design/ai-gradient` | warn | core | Purple/violet to blue/pink gradient, the default generated-UI look. | Use a flat surface or a gradient within one palette family; derive color from the brand profile. |
 | `design/glow-shadow` | warn | core | Colored glow shadow (saturated color with a large blur). | Use a neutral, low-alpha shadow for depth, or a border; never a neon glow. |
-| `design/hover-scale` | warn | core | Hover scale above 1.02 (cards and buttons that grow on hover). | Signal hover with color, border or a 1-2 px lift; keep scale at 1.02 or below. |
+| `design/hover-scale` | warn | core | Hover scale above 1.02 (cards and buttons that grow on hover). | Signal hover with a color, border or surface step. Do not grow or lift the element. |
 | `design/infinite-animation` | warn | core | Infinite or attention-seeking animation on a non-loading element. | Animate once on a state change, or only on loading indicators; respect prefers-reduced-motion. |
 | `design/heavy-weight` | warn | core | Font weight 800/900 (extrabold/black). | Use the weights defined in the brand profile; hierarchy usually needs size and spacing, not 900. |
 | `design/uppercase-tracking` | warn | core | Uppercase text with wide letter-spacing (the generated "eyebrow" label). | Use sentence case; if a label must be uppercase, keep tracking small and use it once per view. |
@@ -161,6 +187,9 @@ In Markdown and plain text, words in quotes or emphasis and lines that list seve
 | `css/important-overuse` | info | core | Many !important declarations in one file. | Fix specificity at the source (layers, lower-specificity selectors) instead of stacking !important. |
 | `css/px-sprawl` | info | core | Many distinct one-off pixel values in one file. | Map sizes to a spacing/type scale (tokens or rem steps) instead of hand-picked pixels. |
 | `css/arbitrary-px` | info | core | Arbitrary pixel value in a utility class (e.g. p-[13px]). | Use the spacing/type scale; add a token if the value is a real, repeated need. |
+| `css/fluid-type-range` | warn | core | Fluid font size whose maximum is more than 2.5 times its minimum. | Keep clamp() max at or below 2.5 × min (rem), so browser zoom can still reach 200 % text size (WCAG 1.4.4). |
+| `perf/lazy-high-priority` | error | core | Image with both loading="lazy" and fetchpriority="high". | The largest image of the first viewport gets fetchpriority="high" and no lazy loading; images further down get loading="lazy" and no fetchpriority. |
+| `perf/google-fonts` | warn | core | Fonts loaded from Google servers (fonts.googleapis.com, fonts.gstatic.com). | Host the font files on the site itself (woff2, @font-face). That saves the connections to two other servers before text can render, and the font can be preloaded. |
 | `copy/hype-word` | error | core | Hype word. | Say what the product does, concretely: the task, the number, the result. |
 | `copy/soft-hype-word` | warn | core | Inflated word that usually hides a missing specific. | Replace with the concrete claim (what changes, for whom, by how much) or delete. |
 | `copy/ai-phrase` | warn | core | Stock phrase typical of generated copy. | Start with the reader's situation or the concrete offer; cut the throat-clearing. |
@@ -182,6 +211,8 @@ In Markdown and plain text, words in quotes or emphasis and lines that list seve
 | `brand/off-palette-color` | warn | brand | Color not in the brand palette. | Use a palette color or its token (see colors in the brand profile). |
 | `brand/off-brand-font` | warn | brand | Font family not listed in the brand profile. | Use a family from fonts in the brand profile. |
 | `brand/motion-none` | warn | brand | Animation, but the brand profile says motion: none. | Remove the animation; show state changes instantly. |
+| `direction/shape` | warn | style position | Corner radius outside the confirmed shape. | Use the radius of the confirmed shape (sharp: 0 to 2 px, soft: 3 to 10 px), or change the style position and have it confirmed again. |
+| `direction/type-contrast` | warn | style position | Largest font size outside the confirmed type contrast. | Bring the largest size within the confirmed range (flat: up to 2 times body size, medium: up to 3.5 times), or change the style position and have it confirmed again. |
 | `a11y/outline-none` | error | core | Focus outline removed without a replacement focus style. | Keep the outline or add :focus-visible { outline: 2px solid <token>; outline-offset: 2px }. |
 | `a11y/zoom-disabled` | error | core | Pinch zoom disabled (user-scalable=no / maximum-scale=1). | Use <meta name="viewport" content="width=device-width, initial-scale=1">. |
 | `a11y/img-alt` | error | core | Image without alt text. | Add alt describing the content, or alt="" if purely decorative. |

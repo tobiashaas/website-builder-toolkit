@@ -34,6 +34,13 @@ Pillar: top topic with a real hub page. Cluster: a group of at least three pages
 **Direction**
 Five lines (offer, character, world, moment, signature) plus one concept sentence, written by `site-direction` and confirmed by a person before styling starts.
 
+**Style position**
+Where a piece sits on five measurable axes: density, type contrast, shape, color budget, imagery. One stage per axis, set in the direction (or site-wide in the brand profile) and checked by lint and on the render.
+_Avoid_: style, look, theme (they name a feeling, not a measurable stage)
+
+**Starting point**
+A named style position that variants begin from, chosen by the material the brand has, not by its industry. Never the result: at least one axis moves for the brand.
+
 **Concept**
 The one sentence in the direction every later choice is checked against. It must survive the next state and rule something out.
 
@@ -64,6 +71,6 @@ The piece as people will see it, at the size they will see it: the frontend, an 
 ## Relationships
 
 - A **brand profile** feeds every **direction**.
-- A **direction** contains one **concept** and points at one **moment** and optionally a **signature**.
+- A **direction** contains one **concept** and one **style position**, and points at one **moment** and optionally a **signature**.
 - **Passes** run after the **direction** is confirmed; each ends with a check on the **render**.
 - **Tells** are found by `site-audit` and fixed in **passes**.

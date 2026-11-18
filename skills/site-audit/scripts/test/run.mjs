@@ -30,7 +30,7 @@ const cases = [
     count: { 'a11y/img-alt': 1 } },
   { name: 'css tells', args: [fx('tells/components.css')],
     expect: ['design/ai-gradient', 'design/glow-shadow', 'css/transition-all', 'design/negative-tracking-small',
-      'css/animate-layout', 'css/important-overuse', 'css/px-sprawl'],
+      'css/animate-layout', 'css/important-overuse', 'css/px-sprawl', 'perf/google-fonts'],
     absent: ['design/infinite-animation'] },
   { name: 'jsx/tailwind tells, no adapter', args: [fx('tells/app.jsx')],
     expect: ['design/gradient-text', 'design/ai-gradient', 'design/hover-scale', 'css/transition-all', 'design/glow-shadow',
@@ -70,6 +70,26 @@ const cases = [
     check: (r) => r.findings.every((x) => !x.file.startsWith('skip/')) && r.findings.find((x) => x.rule === 'css/transition-all').severity === 'error' },
   { name: '--fail-on warn', args: [fx('tells/components.css'), '--fail-on', 'warn'], status: 1 },
   { name: 'button period: only real buttons, never headings or wrappers', args: [fx('tells/buttons.html'), '--lang', 'de'], count: { 'copy/button-period': 3 } },
+  { name: 'platform rules: fluid type range, lazy + high priority', args: [fx('tells/platform.html')], status: 1,
+    expect: ['css/fluid-type-range', 'perf/lazy-high-priority', 'perf/google-fonts'],
+    count: { 'css/fluid-type-range': 2, 'perf/lazy-high-priority': 2 } },
+  { name: 'platform rules: fluid type within range, lazy image below the fold pass', args: [fx('clean/platform.css'), fx('clean/platform.html')], status: 0, total: 0 },
+  { name: 'direction: sharp shape and flat type contrast', args: [fx('tells/direction.css'), '--direction', fx('direction-sharp.md')],
+    count: { 'direction/shape': 3, 'direction/type-contrast': 1 },
+    check: (r) => r.options.style.shape === 'sharp' && /4\.5 times body size/.test(r.findings.find((x) => x.rule === 'direction/type-contrast').message) },
+  { name: 'direction: no style position, no direction rules', args: [fx('tells/direction.css')], absent: ['direction/shape', 'direction/type-contrast'] },
+  { name: 'direction: style position from the brand profile (soft, medium)', args: [fx('tells/direction.css'), '--brand', fx('brand-style.md')],
+    count: { 'direction/shape': 2, 'direction/type-contrast': 1 } },
+  { name: 'direction: direction file overrides the brand profile per axis', args: [fx('tells/direction.css'), '--brand', fx('brand-style.md'), '--direction', fx('direction-sharp.md')],
+    count: { 'direction/shape': 3 }, check: (r) => r.options.style.shape === 'sharp' && r.options.style.imagery === 'photo' },
+  { name: 'direction: unknown axis value is a usage error', args: [fx('tells/direction.css'), '--direction', fx('direction-invalid.md')],
+    usageError: /style\.shape: "pointy" is not one of sharp, soft, round/ },
+  { name: 'direction: font shorthand counts, tokens that only look like sizes do not', args: [fx('tells/direction-font.css'), '--direction', fx('direction-sharp.md')],
+    count: { 'direction/type-contrast': 1, 'css/fluid-type-range': 1, 'direction/shape': 0 },
+    check: (r) => /96 px is 6\.0 times/.test(r.findings.find((x) => x.rule === 'direction/type-contrast').message) },
+  { name: 'direction: tab-indented front matter is read', args: [fx('tells/direction.css'), '--direction', fx('direction-tabs.md')], count: { 'direction/shape': 3 } },
+  { name: 'direction: a file without a style position is a usage error', args: [fx('tells/direction.css'), '--direction', fx('direction-empty.md')], usageError: /no style position found/ },
+  { name: 'config file: failOn is honored', args: ['.'], cwd: fx('config-failon'), status: 1, expect: ['css/transition-all'] },
   { name: 'clean fixtures: zero findings', args: [fx('clean')], status: 0, total: 0 },
   { name: 'clean fixtures with brand + adapters: zero errors', args: [fx('clean'), '--brand', brand, '--adapter', 'tailwind'], status: 0, errors: 0 },
   { name: 'clean German file with brand', args: [fx('clean/termine-de.md'), '--brand', brand], status: 0, total: 0 },
@@ -79,7 +99,9 @@ let failed = 0;
 for (const c of cases) {
   const problems = [];
   let r;
-  try { r = run(c.args, c.cwd); } catch (e) { problems.push(e.message); }
+  try { r = run(c.args, c.cwd); if (c.usageError) problems.push('expected a usage error'); }
+  catch (e) { if (!c.usageError || !c.usageError.test(e.message)) problems.push(e.message); }
+  if (c.usageError) r = null;
   if (r) {
     const ids = r.findings.map((x) => x.rule);
     for (const id of c.expect || []) if (!ids.includes(id)) problems.push(`missing ${id}`);

@@ -4,7 +4,7 @@ description: "Take a working page or screen from fine to finished: design every 
 license: CC-BY-4.0
 ---
 
-<!-- last-reviewed: 2026-11-08 -->
+<!-- last-reviewed: 2026-11-17 -->
 # Polish
 
 Composes with: `site-design` (structure comes first), `site-verify` (frame-by-frame checks). Motion rules: [motion.md](motion.md).
@@ -44,10 +44,11 @@ Map every state and design the unhappy ones: empty, loading, error, success, off
 | Forms | 16 px inputs, real labels, `autocomplete`, Enter submits, errors keep the input |
 | Hit area | ≥ 44 × 44 px on touch, ≥ 40 × 40 px on desktop, no overlaps |
 | Contrast | text ≥ 4.5:1, large text and icons ≥ 3:1, on the real background |
-| Layout shift | fixed dimensions or `aspect-ratio` for images and late content |
+| Layout shift | fixed dimensions or `aspect-ratio` for images and late content; `font-size-adjust: from-font` so the fallback font matches the web font |
+| First image | the largest image of the first viewport has `fetchpriority="high"` and no `loading="lazy"`; at most two high-priority images per page |
 | Numbers | `font-variant-numeric: tabular-nums` where they change or align |
 | Weight on hover | never change `font-weight` on hover or selection; use color |
-| Typography | real quotes and ellipsis for the language, `text-wrap: balance` on headings, `pretty` on body, 45–75 characters per line |
+| Typography | real quotes and ellipsis for the language, `text-wrap: balance` on headings (not on boxes with a visible background or border), `pretty` on body, 45–75 characters per line |
 | Alignment | two or three dominant vertical lines per screen; optical over mathematical where they differ |
 | Focus | visible, neutral color, never removed |
 | Press | slight scale-down (about 0.96), never below 0.95 |

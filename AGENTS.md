@@ -32,8 +32,10 @@ It helps produce design and copy that fit one brand and don't read as generated.
 ## Lint
 
 ```
-node skills/site-audit/scripts/slop-lint.mjs <paths> --brand website-builder/brand.md --adapter acss|etch|bricks --lang de|en
+node skills/site-audit/scripts/slop-lint.mjs <paths> --brand website-builder/brand.md --direction website-builder/direction/<page>.md --adapter acss|etch|bricks --lang de|en
 ```
+
+On the rendered page: `node skills/site-verify/scripts/render-check.mjs <url> --direction website-builder/direction/<page>.md --css-effect`.
 
 `--format json` for machine-readable output. Rules and options: `skills/site-audit/scripts/README.md`.
 

@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const VERSION = '0.1.0';
 
@@ -493,5 +493,7 @@ function main() {
 
 // Run the CLI only when executed directly, so other scripts can import the formula.
 export { parseColor, channel, luminance, ratio };
-const isMain = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+// Compare resolved paths: started through a symlinked skills folder, the two differ as plain strings.
+const realPath = (p) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } };
+const isMain = Boolean(process.argv[1]) && realPath(fileURLToPath(import.meta.url)) === realPath(process.argv[1]);
 if (isMain) main();

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Style position</title>
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; font-size: 16px; color: #111; background: #fff; }
+  section { padding: 120px 24px; }
+  h1 { font-size: 72px; line-height: 1.1; margin: 0 0 24px; }
+  h2 { font-size: 32px; margin: 0 0 16px; }
+  p { margin: 0 0 16px; max-width: 60ch; }
+  .hero-image { display: block; width: 100%; max-width: 900px; height: 360px; }
+  .card { border: 1px solid #767676; border-radius: 14px; padding: 24px; max-width: 480px; }
+  .button { display: inline-block; min-height: 44px; padding: 10px 20px; border: 0; border-radius: 14px; background: #1d4ed8; color: #fff; font: inherit; }
+  .badge { display: inline-block; padding: 8px 16px; border-radius: 14px; background: #166534; color: #fff; min-width: 120px; min-height: 28px; }
+  input { min-height: 44px; padding: 8px 12px; border: 1px solid #767676; border-radius: 14px; font: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <section>
+    <h1>Joinery</h1>
+    <img class="hero-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='360'/%3E" alt="Workshop with a finished oak table" width="900" height="360" fetchpriority="high">
+  </section>
+  <section>
+    <h2>Commission a piece</h2>
+    <div class="card"><p>Tables, shelves and doors, built to order.</p><span class="badge">Open today</span></div>
+    <p><label for="mail">Email</label> <input id="mail" type="email" autocomplete="email"></p>
+    <button class="button" type="button">Ask for a quote</button>
+  </section>
+  <section>
+    <h2>Where to find us</h2>
+    <p>Harbor Road 4, open from eight to five on weekdays.</p>
+  </section>
+</main>
+</body>
+</html>

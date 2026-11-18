@@ -12,11 +12,13 @@ Renders a live URL in the locally installed Chrome at several widths and measure
 node scripts/render-check.mjs https://example.com/
 node scripts/render-check.mjs https://example.com/ --widths 390,1440 --reduced-motion
 node scripts/render-check.mjs https://example.com/ --format json --no-out
+node scripts/render-check.mjs https://example.com/ --widths 390,1280 --css-effect
+node scripts/render-check.mjs https://example.com/ --direction website-builder/direction/home.md
 ```
 
 | Option | Values | Default | Effect |
 | --- | --- | --- | --- |
-| `--widths` | comma-separated CSS px | `360,390,768,1024,1280,1440,1920` | viewport widths; below 768 the page is emulated as a phone (`mobile: true`, touch, height 844) |
+| `--widths` | comma-separated CSS px | `320,390,768,1024,1280,1440,1920` (320 px is the WCAG 1.4.10 reflow minimum) | viewport widths; below 768 the page is emulated as a phone (`mobile: true`, touch, height 844) |
 | `--format` | `text`, `json` | `text` | output format |
 | `--out <dir>` | path | see below | folder for `report.md` and `<width>.png` |
 | `--no-out` | flag | | write no files, even inside a project |
@@ -24,6 +26,9 @@ node scripts/render-check.mjs https://example.com/ --format json --no-out
 | `--level` | `aa`, `aaa` | `aa` | contrast level: 4.5:1 and 3:1 (AA) or 7:1 and 4.5:1 (AAA) |
 | `--wait` | ms | `3000` | wait after the load event, before the page is scrolled through once and measured |
 | `--chrome <path>` | path | auto | browser binary; `CHROME_PATH` works too |
+| `--direction <file>` | path to a confirmed direction | none | also measure the style position from the file's front matter on the render (check `style-position`); axes the file leaves empty come from `website-builder/brand.md` |
+| `--css-effect` | flag | off | also report declarations that change nothing (check `css-no-effect`), in every stylesheet of the page that is not framework or core |
+| `--css-only <pattern>` | text, comma-separated | | like `--css-effect`, but only for stylesheets whose URL or `<style#id>` contains the pattern; a named framework stylesheet is checked too |
 
 Without `--out`, files go to `website-builder/reports/<YYYY-MM-DD>-<slug>-render/` when a `website-builder/` folder exists in the current directory or a parent (same convention as the other scripts); otherwise nothing is written.
 
@@ -42,13 +47,44 @@ Per width, on a fresh tab:
 | `animation` | warn | running animations with `animation-iteration-count: infinite`, with their names |
 | `reduced-motion` | error | with `--reduced-motion`: animations still infinite, or still moving (`transform`, `translate`, `rotate`, `scale`, offsets) |
 | `image-alt` | error | rendered `img` without an `alt` attribute |
+| `image-priority` | error, warn | the largest `img` in the first viewport (at least 15 % of it, a stand-in for the LCP image) has `loading="lazy"` (error) or no `fetchpriority="high"` (warn); more than two images with `fetchpriority="high"` (warn). CSS background images are not considered |
 | `accessible-name` | error | link or button without text, `aria-label`, `aria-labelledby`, `title` or an `img alt` inside |
 | `target-size` | warn | `a`, `button`, `input`, `select`, `textarea`, `[role=button]` smaller than 24 × 24 CSS px (WCAG 2.5.8); inline links inside running text are exempt |
 | `viewport-meta` | error | `user-scalable=no` or `maximum-scale` below 2; warn when the tag is missing |
 | `console` | warn | exceptions, `console.error`, error log entries, failed requests and HTTP 4xx/5xx responses |
-| `load` | error/warn | navigation failed, or no load event within 45 s |
+| `load` | error/warn | navigation failed, the document answered HTTP 400 or above (an error or block page was measured, often bot protection against headless Chrome), or no load event within 45 s |
 
 The same finding at several widths is reported once, at the first width, with the other widths in `alsoAt`.
+
+### `style-position` (with `--direction`)
+
+Measures what the page renders against the stage confirmed per axis (`site-direction`). All findings are warnings. Computed values are read, so a radius or type scale that comes from a framework variable is measured like any other.
+
+| Axis | Measured | Reported when |
+| --- | --- | --- |
+| `shape` | computed corner radius of every visible box with a radius and of every control (buttons, inputs, selects, links with a `btn` or `button` class) | a radius above the stage (`sharp` up to 2 px, `soft` up to 10 px), or a control with a visible fill, border or shadow below it (`soft` from 3 px, `round` above 10 px). Fully round square elements (avatars, dots, icon buttons) are left out; pill buttons count as round |
+| `type_contrast` | largest font size of visible text divided by the body font size | outside the stage (`flat` up to 2, `medium` 2 to 3.5, `strong` above 3.5) |
+| `density` | median vertical padding of the outermost page sections (`main section`, children of `main`, `body > section`; at least 200 px high and 80 % wide; the first child's padding when the section has none) | outside the stage (`airy` from 96 px, `regular` 56 to 95 px, `dense` up to 55 px); a manual finding when no section with padding is found |
+| `color_budget` | hue families among text colors and background fills of at least 2000 px²; hues within 25 degrees count as one family; neutrals, near black and light tints are left out | more families than the stage allows (`one-accent` 1, `two-families` 2). Status colors are not told apart from brand colors; images and gradients are not counted |
+| `imagery` | images, videos, canvases, inline SVGs and CSS background images in the first viewport | `type-only` with an image covering 5 % or more; `photo` or `illustration` with no image of 10 % or more. Whether an image is a photo or a drawing is not judged |
+
+Type contrast and density depend on the viewport and are judged at one width only: the tested width closest to 1280 px, from 1024 px up. Shape, color budget and imagery are judged at every width.
+
+### `css-no-effect` (with `--css-effect`)
+
+The check reads the stylesheets the rendered page really loads. It leaves out the ones nobody on the project edits: WordPress core (`/wp-includes/`, `/wp-admin/`, core inline styles), plugins (`/plugins/`), the compiled Automatic.css (`/automatic-css/`, or a file named like `acss-framework.css` in a static export), files named `reset` or `normalize`, the Bricks theme and `node_modules`. The report names what was checked and what was left out. `--css-only` overrides the choice.
+
+For every declaration in those stylesheets the check removes it, compares the computed style of the elements its rule matches, and puts it back. A declaration is reported (warn) when its removal changed nothing at any tested width: another rule, the framework or the browser default already gives that value.
+
+- Every matched element is compared, up to 300 per rule; beyond that an even spread, and the finding says "300 sampled of N".
+- Shorthands are judged as one declaration, as the browser serializes them (`border: 1px solid …`, not seventeen longhands).
+- Two rules that set the same value are both reported, because each alone is redundant. Where the twin has the same selector, the finding names its stylesheet ("the same declaration is also in …"), framework included. Remove one and run again.
+- Nested rules are judged with their resolved selector (`:is(.card) .card__title`). Several `<style>` blocks without an id are numbered: `<style>`, `<style> (2)`.
+- Rules that match no element on this page are summed up in one manual finding. They may match other pages; run the check on each template before deleting.
+- Not judged, and counted in the report: selectors with a state or pseudo-element (`:hover`, `:focus-visible`, `::before`), rules inside `@container` or `@scope`, `transition`, `animation` and `border-image` properties, media queries that are false at every tested width, rules whose text does not survive a round trip through the browser (a shorthand with `var()` next to one of its longhands, the `all` shorthand), and stylesheets from another origin (one manual finding).
+- The check runs after the screenshot and leaves the stylesheets as they were; if a rule cannot be restored exactly, a manual finding says so.
+- Up to 4000 declarations are tested per width; the first 80 findings are listed. JSON output carries `cssEffect: { sheets, skipped, tested, noEffect, unmatched, unchecked, capped }`.
+- The list of left-out stylesheets is a guess from paths and ids. If a stylesheet of the project lands in `skipped`, or a vendor one is checked, name the right ones with `--css-only`.
 
 ## Output and exit codes
 

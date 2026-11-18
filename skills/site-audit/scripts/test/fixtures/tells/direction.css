@@ -1,0 +1,13 @@
+:root {
+  --radius: 0.75rem;
+  --text-display: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+}
+html, body { font-size: 1rem; }
+.card { border-radius: 12px; }
+.tag { border-radius: 6px; }
+.avatar { border-radius: 50%; }
+.rule { border-radius: 2px; }
+.box { border-radius: var(--radius); }
+h1 { font-size: var(--text-display); }
+h2 { font-size: 2rem; }
+small { font-size: 0.875em; }

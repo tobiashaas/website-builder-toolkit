@@ -30,12 +30,12 @@ Lead each section with the recommended answer so the user can accept it with a w
 
 | Mode | What runs | Brand needed |
 | --- | --- | --- |
-| **Full website** | `site-brand` → `site-structure` → `site-direction` → `site-design` with `site-copy` → `site-polish` → `site-seo` → `site-verify` | yes |
+| **Full website** | `site-brand` → `site-structure` with `site-seo` step 1 (search data per page) → `site-direction` → `site-design` with `site-copy` → `site-polish` → `site-seo` steps 2 to 6 and its check → `site-verify` | yes |
 | **Design only** | `site-direction` → `site-design` → `site-polish` → `site-verify`; copy stays as it is | yes, or neutral |
-| **Copy only** | `site-copy` → lint from `site-audit` → `site-verify` (content checks) | voice and facts |
+| **Copy only** | `site-seo` step 1 for pages that should rank (or the main term from `structure.md`) → `site-copy` → lint from `site-audit` → `site-verify` (content checks) | voice and facts |
 | **Build only** (no branding, no copy) | neutral tokens, structure and components with `site-design` passes 1–3 and 5–9, marked placeholders for text, `site-verify` | no |
 | **Anti-slop check** | `site-audit`; then optionally `site-direction` → `site-design` → `site-verify` | helpful, not required |
-| **Structure or relaunch** | `site-structure` (inventory, page types, sitemap, navigation, redirects) → then per page `site-direction` → `site-verify` | helpful |
+| **Structure or relaunch** | `site-structure` (inventory, page types, sitemap, navigation, redirects) with `site-seo` step 1 → then per page `site-direction` → `site-verify` | helpful |
 | **SEO** | `site-seo` (search data, titles, structured data, local, indexing), with the inventory from `site-structure` | helpful |
 | **Design tool first** | `site-brand` → `site-direction` → frames with `site-handoff` → build → compare → `site-verify` | yes |
 

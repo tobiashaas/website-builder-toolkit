@@ -14,6 +14,7 @@ A change is considered when it clears both parts:
 - **One brand's preferences** go in that brand's `website-builder/brand.md`, not in the skills.
 - **Build mechanics** for a builder (how to write pages, APIs, deployment) belong to that builder's tooling. Stack skills link to it.
 - **New stack skills** are added for tools with official documentation and enough users that the rules can be tested on real sites. Today: Automatic.css, Etch, Bricks.
+- **Legal and consent topics** (cookie banners, consent tools, legal pages, privacy law of one country) are out. The toolkit is shared worldwide and the rules differ by country; it covers design, copy, accessibility and findability.
 - **Positive style wishes** ("make it feel premium") are not accepted as rules. Research on agent instruction files found them unhelpful or harmful; see `docs/EVIDENCE.md`.
 
 ## Maintenance

@@ -51,7 +51,7 @@ The type of a page follows the reader's intent and the page's job, not its topic
 | News, event, job | current, dated | news, date, job title | post, event, vacancy |
 | Landing page | campaign or permanent page with a short URL | one campaign or one search term | campaign page |
 
-Each page gets **one main search term**. Links run from the broad informational pages to the commercial one: glossary → guide → offer.
+Each page gets **one main search term**. The term comes from search data, not from the brand's own wording: run `site-seo` step 1 for every page that should rank and record term, secondary terms and source in `structure.md`. Without data, write the term as `(assumed)`. Links run from the broad informational pages to the commercial one: glossary → guide → offer.
 
 **Reusable blocks are not pages.** FAQ answers, short testimonials, team members as contact cards, and feature lists are content blocks attached to pages. Keep them out of the sitemap unless they work as pages on their own.
 
@@ -99,7 +99,7 @@ For each type decide: post type or page, template, fields, taxonomies, relations
 
 ## 7. Check
 
-- [ ] Every page has one job, one audience, one main search term.
+- [ ] Every page has one job, one audience, one main search term with its source (or marked `(assumed)`).
 - [ ] No two pages compete for the same term and intent (this site and sister sites).
 - [ ] Every cluster has a leading page and at least three pages.
 - [ ] Every menu item has a page; every page is within three clicks; no orphans in the new inventory.
